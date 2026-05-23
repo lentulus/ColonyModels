@@ -1,8 +1,22 @@
 # Phase 1 Handover
 
-Written 2026-05-23. If the Claude window closes mid-task, this is the file the
-next assistant should read first. It is a pointer document — it does not
-restate the design; it tells you what's been decided and what to do next.
+Written 2026-05-23, last refresh 2026-05-23. If the Claude window closes
+mid-task, this is the file the next assistant should read first. It is a
+pointer document — it does not restate the design; it tells you what's
+been decided and what to do next.
+
+## TL;DR for a fresh session
+
+Phase 1 planning is **complete**. No code has been written yet. The next
+concrete action is [Phase1Checklist.md](Phase1Checklist.md) step
+**0.1.1 [AI]**: propose vitest + supertest configuration as a one-screen
+plan, then wait for double-approval before installing anything.
+
+If the user's first message in the new session is a continuation cue
+("ok, proceed", "ready", or similar), treat it as the prompt to start
+0.1.1 — but post the proposal and wait for the **second** approval before
+touching the filesystem. See "Working-style rules" below for the
+double-approval gate.
 
 ## What the project is
 
@@ -14,12 +28,39 @@ this project runs on **port 8001**.
 
 ## What to read, in order
 
-1. [intent.md](intent.md) — one screen, the user's original goals.
-2. [Phase1Options.md](Phase1Options.md) — survey of model choices with the
+1. [README.md](README.md) — one-screen index of everything in
+   `docs/design/`, with reading order and "what goes where."
+2. [intent.md](intent.md) — one screen, the user's original goals.
+3. [Phase1Options.md](Phase1Options.md) — survey of model choices with the
    user's annotated decisions inline (`==>` markers).
-3. [Phase1Design.md](Phase1Design.md) — **the authoritative design**. Sections
-   15, 16, 17 capture every resolved decision and the blank-run defaults.
-4. [../../README.md](../../README.md) — how to run the existing scaffold.
+4. [Phase1Design.md](Phase1Design.md) — **the authoritative design**.
+   Section 18 is the glossary — read it first if any vocabulary in the
+   other docs is unfamiliar (red/green tests, slices, anchors, etc.).
+   Sections 15, 16, 17 capture every resolved decision and the blank-run
+   defaults.
+5. [Phase1Checklist.md](Phase1Checklist.md) — **the running record of
+   execution**. Numbered by slice, sub-numbered by phase (test-first /
+   implementation / review), with `[AI]` / `[HUMAN]` tags on every step
+   and `Result:` lines that get filled in as we go. **This is where to
+   look first to know what's next.**
+6. [Phase1TestCases.md](Phase1TestCases.md) — detailed specification of
+   every verification step (automated and manual), numbered in alignment
+   with the checklist. Use this when writing a test (red phase), reviewing
+   a red test, or running a manual procedure.
+7. [Phase1DoD.md](Phase1DoD.md) — slice-agnostic Definition of Done.
+   Gate every green review against this checklist; record sign-off in
+   the table.
+8. [Phase1PBT.md](Phase1PBT.md) — property-based testing plan
+   (`fast-check`). Companion to TestCases for the math layer; properties
+   live alongside example tests.
+9. [Phase1RiskRegister.md](Phase1RiskRegister.md) — active risks with
+   mitigations. Reviewed at every green review.
+10. [Phase1Retros.md](Phase1Retros.md) — one section per slice, filled in
+    at the slice's green review.
+11. [adr/README.md](adr/README.md) — Architecture Decision Records.
+    Three initial ADRs (SQLite, hand-rolled RK4, client-owned sim) plus
+    a backlog of further decisions worth capturing.
+12. [../../README.md](../../README.md) — how to run the existing scaffold.
 
 Reference material: `docs/reference/` contains the Turchin PDF (gitignored).
 Equations cited in the design are from Chapter 7 and Appendix A.
@@ -50,29 +91,42 @@ ColonyModels/
 ├── client/    Vite + React + R3F scaffold (App.tsx renders a spinning cube)
 ├── server/    Express scaffold (only /health endpoint, port 8001)
 └── docs/
-    ├── design/  intent.md, Phase1Options.md, Phase1Design.md, HANDOVER.md
+    ├── design/  15 planning docs (see README.md for the index); adr/ subdir
     └── reference/  Turchin PDF (gitignored)
 ```
 
 Single commit on `main`: `d94f60e Initial scaffold: npm-workspaces TS monorepo (client + server)`.
-No application code yet — only scaffolding. The R3F canvas in
-[client/src/App.tsx](../../client/src/App.tsx) will be replaced by the 2D plot UI.
+**No application code yet** — only scaffolding and planning docs. The R3F
+canvas in [client/src/App.tsx](../../client/src/App.tsx) will be replaced
+by the 2D plot UI starting in Slice 1.
+
+Planning docs are uncommitted (all live under `docs/design/` and are
+visible via `git status`); see "First steps in a new session" below.
 
 ## Sequencing — what to build next
 
-From Phase1Design.md §12, the planned weekly slices. Pick up wherever the
-last session left off (check `git log` and `git status`):
+Phase1Design.md §12 has the authoritative slice list. Each slice is **test-
+first**: write failing tests, get a red review, implement, get a green
+review. Don't skip the red review.
 
-| Week | Slice | Files mostly touched |
-|------|-------|----------------------|
-| 1 | Shared types workspace + `rhsC` + `rk4Step` + hardcoded client page that runs 200 yr and plots one `LineChart`. No server, no events, no rewind. Validates math + plot stack. | new `shared/` workspace, `client/src/sim/`, replace `App.tsx`, add `recharts` |
-| 2 | Persistence: SQLite schema (§7.1), `POST /api/runs`, `PUT /api/snapshots`, client flush on advance. Refresh-restores-run. | `server/src/db.ts`, `server/src/routes/`, `client/src/store/api.ts` |
-| 3 | Events: timeline, replay-from-zero, parameter sliders emit param-set events. Branching as destructive op. | `client/src/sim/replay.ts`, `server/src/routes/events.ts`, `client/src/ui/Controls.tsx` |
-| 4 | Rewind + scrub: cursor, slider, click-on-plot navigation. Snapshot-cache reuse. | `client/src/store/runStore.ts`, `client/src/ui/Plot.tsx` |
-| 5-6 | Tests (integrator vs analytic logistic; replay determinism; HTTP round-trip), polish, demo recipe. | `*.test.ts` files, `README.md` |
+Slice summary (full detail in §12 + the test-first rules in §11.2):
+
+| Slice | What it lands | Tests that must be red at start |
+|-------|---------------|----------------------------------|
+| 0 | Test harness + numerical regression anchors | `logistic.analytic.test.ts`, `turchin.cycle.test.ts`, `runs.roundtrip.test.ts` (skeleton) |
+| 1 | Shared types + integrator | `model.test.ts`, `integrator.test.ts` (+ Slice 0 logistic anchor turns green) |
+| 2 | Replay engine | `replay.test.ts` (+ Slice 0 Turchin anchor turns green) |
+| 3 | Persistence + HTTP | `db.test.ts`, `runs.roundtrip.test.ts` (full) |
+| 4 | Client store + api wrappers | `runStore.test.ts` |
+| 5 | UI controls + scrubbing | No component tests; manual smoke-test |
+| 6 | Polish + demo recipe | Full `npm test` green |
 
 The "blank-run template" in §17 is the single source of truth for default
 parameters; reference that constant rather than inlining numbers.
+
+Commit-message convention (per §11.2 rule 3): commits with intentionally
+failing tests start with `red:`; commits that turn them green start with
+`green:`. Makes the TDD rhythm visible in `git log`.
 
 ## Sanity check that must pass
 
@@ -83,30 +137,59 @@ $S \ge 0$ clamp is broken — fix before moving on.
 
 ## Libraries already chosen (Phase1Design.md §9)
 
-- `better-sqlite3` (server persistence)
+- `better-sqlite3` (server persistence) — see [ADR-0001](adr/0001-sqlite-for-phase-1-persistence.md)
 - `zod` (boundary validation, shared between workspaces)
 - `nanoid` (RunId)
 - `recharts` (2D plotting)
 - `zustand` (client state)
 - `vitest` (tests)
+- `supertest` (HTTP integration tests)
+- `fast-check` (property-based testing) — see [Phase1PBT.md](Phase1PBT.md)
 
 None of these are installed yet — they go in with the first slice that needs
-them.
+them (Slice 0 installs vitest, supertest, and fast-check).
 
-## What the user has signaled about working style
+## Working-style rules (non-negotiable)
 
 - **The user is not writing code. Claude implements; the user supervises
   and reviews.** Plan for the review cadence in Phase1Design.md §11.1:
-  end-of-slice review (mandatory), mid-slice check-in on judgement calls,
-  pre-commit triage on every commit, math-correctness review at slices 1
-  and 5. Don't push commits unprompted.
+  red review at the start of every slice, green review at the end of
+  every slice (mandatory), mid-slice check-in on judgement calls,
+  pre-commit triage on every commit, math-correctness review after
+  Slice 0 and Slice 5. Don't push commits unprompted.
+- **Double-approval gate on every [HUMAN] approval step.** Never proceed
+  on a single approval. After the user approves, echo the specific next
+  action and wait for a second explicit "yes." This defends against
+  typos and ambiguous short answers — the user is self-aware that their
+  messages contain typos and explicitly asked for this safeguard. Even
+  an unambiguous first approval still gets the echo-and-confirm cycle.
+  Full rule in Phase1Design.md §11.1.
+- **Test-first.** Phase1Design.md §11.2 lays out the rules: no
+  production code without a red test for it; tests must fail for the
+  right reason; commits use `red:` / `green:` prefixes; vitest in watch
+  mode is the inner loop. CI is not Phase 1 scope.
+- **Green review = Definition of Done.** Use [Phase1DoD.md](Phase1DoD.md)
+  as the explicit gate. Every green review fills in the DoD checklist
+  and signs off the sign-off table.
+- **Slice retro at every green review.** Claude drafts an entry in
+  [Phase1Retros.md](Phase1Retros.md); user approves or edits. Past
+  retros are immutable.
+- **Risk register check at every green review.** Walk
+  [Phase1RiskRegister.md](Phase1RiskRegister.md), add new risks, update
+  statuses on existing ones.
+- **ADRs for architecturally significant choices.** When a non-trivial
+  design decision is made (or reversed), file a new
+  [adr/NNNN-…md](adr/README.md) rather than burying it in a design-doc edit.
+
+## Working-style preferences (durable)
+
 - Strong preference for explicit, terse design docs with the *why* alongside
-  the *what*. They annotate options with `==>` markers and expect later
-  changes to thread back to those annotations.
-- Wants the design pinned before code. The current ask was design + handover,
-  **not** implementation. Confirm before starting Week 1 unless told to go.
-- Conversation continuity is fragile — they have closed the window mid-task
-  before. Write durable artifacts, not just chat replies.
+  the *what*. The user annotates options with `==>` markers and expects
+  later changes to thread back to those annotations.
+- Design pinned before code. The current ask was design + handover,
+  **not** implementation. Confirm before starting Slice 0 unless told to go.
+- Conversation continuity is fragile — the user has closed the Claude
+  window mid-task before. Write durable artifacts, not just chat replies.
 
 ## Open seams flagged for later phases (do NOT build now)
 
@@ -119,11 +202,33 @@ them.
 - Non-Turchin alternatives (Allee, resource-limited LV without humans as
   prey, Ricker/Beverton-Holt) — design §13. Each lands as a new `ModelKind`.
 
-## If you're resuming and aren't sure where things stand
+## First steps in a new session
 
-1. `git log --oneline -20` — what's been committed.
-2. `git status` — what's mid-flight.
-3. Compare `client/src/` and `server/src/` against the file layout in
-   Phase1Design.md §10. The gap tells you which slice to work on.
-4. Read this file's "Decisions already made" section and confirm the user
-   hasn't superseded any of them in a more recent design-doc edit.
+If the session is fresh and the user has not given specific direction:
+
+1. Read [README.md](README.md) — gets you oriented in 30 seconds.
+2. `git log --oneline -20` and `git status` — confirm what's been
+   committed and what's mid-flight. (Planning docs are uncommitted as
+   of this handover; the user may want to commit them first thing.)
+3. Open [Phase1Checklist.md](Phase1Checklist.md) and look for the first
+   unchecked box. The current expected starting point is **step 0.1.1**
+   (Claude proposes vitest + supertest configuration).
+4. Compare `client/src/` and `server/src/` against the file layout in
+   Phase1Design.md §10. If files exist past what the checklist shows
+   done, the user did something between sessions — ask before proceeding.
+5. Read this file's "Decisions already made" section and confirm the user
+   hasn't superseded any of them in a more recent design-doc edit
+   (check `git log --oneline docs/design/` and inspect Phase1Design.md
+   for any `==>` annotations you don't recognise).
+
+## If you're resuming mid-slice
+
+1. Open [Phase1Checklist.md](Phase1Checklist.md) and find the most
+   recent ticked box.
+2. Open [Phase1TestCases.md](Phase1TestCases.md) and find the most
+   recent populated `Execution log` entry — confirms what's been
+   verified.
+3. Open [Phase1Retros.md](Phase1Retros.md) — the current slice's
+   entry may have notes-in-progress.
+4. The next unchecked step in the checklist is your target. Apply the
+   double-approval gate before doing anything irreversible.

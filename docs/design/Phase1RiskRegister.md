@@ -1,0 +1,58 @@
+# Phase 1 Risk Register
+
+Running list of project risks for Phase 1. Reviewed at each green review
+([Phase1Design.md](Phase1Design.md) §11.1) as part of the
+[Definition of Done](Phase1DoD.md).
+
+## Scoring
+
+- **Likelihood** — `Low` / `Med` / `High`. Probability the risk
+  materialises during Phase 1.
+- **Impact** — `Low` (annoyance), `Med` (slice rework), `High` (rework
+  the design or lose data).
+- **Status** — `Open` (active), `Mitigated` (mitigation in place but the
+  risk persists), `Closed` (cannot materialise any more), `Escalated`
+  (warrants design-doc change).
+
+## Active risks
+
+| ID | Risk | Likelihood | Impact | Mitigation | Owner | Status |
+| -- | ---- | ---------- | ------ | ---------- | ----- | ------ |
+| R-001 | RK4 numerically unstable in some valid `(r, β, c, s₀)` region | Low | High | Analytic-logistic anchor ([TestCases](Phase1TestCases.md) 0.2.1) and Turchin cycle anchor (0.2.2). PBT property P-I-3 ([Phase1PBT.md](Phase1PBT.md)) sweeps the parameter space. | Claude (tests) / project lead (review) | Open |
+| R-002 | SQLite single-file = single-point-of-loss; an `rm` or disk failure loses all runs | Med | Med | Document a backup recipe in the README (cron `cp` or manual). Phase 1 is exploratory so individual run loss is recoverable by re-running. | Project lead | Open |
+| R-003 | Snapshot-cache reuse drifts from from-scratch replay (cache poisoning) | Med | High | Determinism test (TestCases 2.1.1, sub-case `determinism`), PBT property P-R-1, UI-observable check (TestCases 5.3.3). | Claude (tests) | Open |
+| R-004 | Recharts performance with ~7,200 snapshots (600 yr × 12 ticks/yr) — UI jank on play/scrub | Med | Med | Spike during Slice 5 implementation: profile the live plot at 600 yr; if `>16 ms/frame`, downsample to ≤ 2000 visible points. Recharts has known issues above ~5k points. | Claude (spike) | Open |
+| R-005 | Numerical-precision tolerance choices in tests (1e-6, 1e-9, 1e-12) too tight → flaky, or too loose → broken-but-passes | Med | Low | Tune empirically at Slice 0 red review; raise/lower until stable. PBT runs explore wider input ranges than examples, surfacing tolerance issues earlier. | Project lead (red review) | Open |
+| R-006 | Conversation continuity — the Claude window may close mid-slice, losing context | High | Low | [HANDOVER.md](HANDOVER.md) is durable; [Phase1Checklist.md](Phase1Checklist.md) `Result:` lines updated incrementally; [Phase1Retros.md](Phase1Retros.md) captures surprises at slice end. Memory files (`~/.claude/projects/.../memory/`) persist across sessions. | Both | Mitigated |
+| R-007 | Schema evolution between Phase 1 and Phase 2 will break stored runs | High | Med | Punt to Phase 2 with explicit awareness; Phase 1 runs are explicitly exploratory and not data-of-record. Add `schema_version INTEGER` column to runs table in Slice 3 to make Phase 2 migration tractable. | Claude (Slice 3) | Open |
+| R-008 | Short typo-laden approvals from project lead misinterpreted by Claude → unintended action | Med | High (if commit / delete) | Double-approval gate ([Phase1Design.md](Phase1Design.md) §11.1, first bullet) — Claude echoes the specific next action and waits for a second confirmation. Memory file `feedback_double_approval` keeps this durable across sessions. | Both | Mitigated |
+| R-009 | Browser-refresh state restoration drifts from server state (e.g. cursor lost, slider positions wrong) | Med | Med | Test cases TestCases 4.3.3 (post-Slice 4) and 5.3.2.h (post-Slice 5) check byte-identical restoration. | Claude (tests) | Open |
+| R-010 | Property-based tests too slow to keep `vitest --watch` responsive | Low | Low | Default to 100 runs per property; raise to 1000 only for anchor properties at end of Slice 5 ([Phase1PBT.md](Phase1PBT.md) "When to run PBT"). | Claude | Open |
+| R-011 | `peoplePerUnit` display scaling confuses users when comparing runs with different scaling factors | Low | Low | UI surfaces the scaling factor in run-list and run-detail views. Tooltip always shows the underlying scaled value alongside the people-count. Documented in Phase1Design.md §8.3. | Claude (Slice 5) | Open |
+| R-012 | Effort estimate (Phase1Design.md §11) optimistic for solo human + AI cadence with double-approval and TDD overhead | Med | Low (timeline only) | Slack built into the schedule (~2 of 8 weeks). Retro at each green review tracks whether slices ran to estimate; recalibrate after Slice 2. | Project lead | Open |
+
+## Closed / superseded
+
+| ID | Risk | Resolution | Date closed |
+| -- | ---- | ---------- | ----------- |
+| *(none yet)* | | | |
+
+## Review cadence
+
+- **At each green review**, walk this table. For each `Open` risk, ask:
+  *did anything this slice change its likelihood, impact, or mitigation
+  status?* For new risks discovered, add a row.
+- **At Phase 1 sign-off** (DoD §6.5.2), revisit every `Open` risk and
+  decide: close, carry into Phase 2, or escalate to a design-doc change.
+
+## How to file a new risk
+
+Append a row at the bottom of the active table with a new `R-NNN` ID
+(monotonically increasing — never reuse). Even tiny risks are worth a
+row; the cost is one line.
+
+## How to close a risk
+
+Move the row to the *Closed / superseded* table. Note the date and the
+resolution (test now passes, code no longer relevant, etc.). Do not
+delete — the trail is part of the project's history.

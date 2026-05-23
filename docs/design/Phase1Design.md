@@ -4,6 +4,23 @@ Concrete implementation design derived from
 [Phase1Options.md](Phase1Options.md). No code yet — pseudo-code,
 contracts, and effort estimates only.
 
+## Companion documents
+
+This document is the design *intent*. Several companion documents handle
+execution and process. Quick map:
+
+| Document | Purpose |
+| -------- | ------- |
+| [README.md](README.md) | Index of `docs/design/` with reading order. |
+| [Phase1Checklist.md](Phase1Checklist.md) | Step-by-step execution log; numbered by slice. |
+| [Phase1TestCases.md](Phase1TestCases.md) | Detailed verification specs, numbered in alignment with the checklist. |
+| [Phase1DoD.md](Phase1DoD.md) | Slice-agnostic Definition of Done; gate every green review. |
+| [Phase1PBT.md](Phase1PBT.md) | Property-based testing plan; companion to TestCases for the math layer. |
+| [Phase1RiskRegister.md](Phase1RiskRegister.md) | Active risks + mitigations; reviewed at every green review. |
+| [Phase1Retros.md](Phase1Retros.md) | One section per slice; written at green review. |
+| [adr/](adr/) | Architecture Decision Records. |
+| [HANDOVER.md](HANDOVER.md) | Cross-session continuity doc; read first if starting fresh. |
+
 ## 0. Decisions carried forward
 
 From annotations on Phase1Options.md:
@@ -423,14 +440,16 @@ Minimum useful set:
 
 | Concern               | Pick                  | Why                                                                    |
 | --------------------- | --------------------- | ---------------------------------------------------------------------- |
-| ODE integration       | **hand-rolled RK4**   | 20 lines. Adding an ODE library is more work than writing one.         |
+| ODE integration       | **hand-rolled RK4**   | 20 lines. Adding an ODE library is more work than writing one. See [ADR-0002](adr/0002-hand-rolled-rk4-over-ode-library.md). |
 | Client state          | **zustand**           | One-file store, no Provider needed. Right-sized for this app.          |
 | 2D plotting           | **recharts**          | React-native, declarative. `uPlot` is faster but uglier in React.      |
 | Server framework      | **express** (already) | No change.                                                             |
-| Persistence           | **better-sqlite3**    | Sync API, single-file DB, zero ops. SQLite handles JSON columns since 3.38. |
+| Persistence           | **better-sqlite3**    | Sync API, single-file DB, zero ops. SQLite handles JSON columns since 3.38. See [ADR-0001](adr/0001-sqlite-for-phase-1-persistence.md). |
 | ID generation         | **nanoid**            | Smaller and faster than `uuid` for our purposes.                       |
 | Validation at boundary| **zod**               | Validate POSTed event payloads; share schemas client/server.           |
-| Tests                 | **vitest**            | First-class TS + ESM, same config style as Vite.                       |
+| Tests (examples)      | **vitest**            | First-class TS + ESM, same config style as Vite.                       |
+| Tests (HTTP)          | **supertest**         | In-process express round-trip; no port binding required.               |
+| Tests (properties)    | **fast-check**        | Generative testing for the math layer. See [Phase1PBT.md](Phase1PBT.md). |
 
 Note: deliberately no `mathjs`, no `ode-solver`, no `d3` for plotting. Each
 of those is bigger than the code that uses it.
@@ -474,20 +493,50 @@ Claude implements; the user supervises and reviews. The implementation PM
 figures are kept for sizing intuition; the second column is what actually
 costs the user wall-clock time.
 
+> **Vocabulary used in this section:** *red test*, *red review*, *red commit*,
+> *green*, *slice*, *anchor*, *double-approval gate*, *math-correctness
+> review* are all defined in §18 Glossary. Methodology origin is TDD
+> (Kent Beck, *Test-Driven Development: By Example*, 2002).
+>
+> **Companion docs for this section:**
+> - [Phase1Checklist.md](Phase1Checklist.md) is the step-by-step execution log
+>   of the slicing in §12.
+> - [Phase1DoD.md](Phase1DoD.md) is the explicit Definition of Done; every
+>   green review fills it in and signs off.
+> - [Phase1TestCases.md](Phase1TestCases.md) holds the detailed test specs.
+> - [Phase1PBT.md](Phase1PBT.md) adds property-based tests to the math layer.
+> - [Phase1RiskRegister.md](Phase1RiskRegister.md) is reviewed at every green
+>   review.
+> - [Phase1Retros.md](Phase1Retros.md) gets a new entry at every green review.
+
+**Test-first discipline.** Each module slice begins by writing the tests
+for the behavior the slice will deliver. Those tests are committed (or at
+least running in the watcher) in a failing state — the imports resolve to
+not-yet-written modules and `vitest` reports red. The slice is "done" when
+the red tests for that slice turn green and stay that way. Details and
+rules in §11.2; per-slice test inventory in §12. Test work is bundled into
+each row's Impl column — there is no separate "write the tests" row.
+
 | # | Module                                              | Impl (Claude, PM) | Human supervision + review |
 | - | --------------------------------------------------- | ----------------- | -------------------------- |
+| 0 | Test harness + red regression anchors               | 0.10              | ~1 hr — confirm anchors are right, red, and meaningful |
 | 1 | Shared types workspace                              | 0.05              | ~30 min                    |
-| 2 | Model + integrator (rhsC, rk4Step, advanceTick)     | 0.10              | ~1 hr — sanity-check math against Turchin |
-| 3 | Replay engine (paramsAt, replayTo, branching)       | 0.20              | ~2 hr — branching semantics; high-bug-density area |
-| 4 | Server: DB schema, migrations, repos                | 0.15              | ~45 min                    |
-| 5 | Server: HTTP routes + zod validation                | 0.20              | ~1 hr — boundary contracts |
-| 6 | Client: Zustand store + api wrappers                | 0.15              | ~1 hr                      |
+| 2 | Model + integrator (rhsC, rk4Step, advanceTick) + unit tests | 0.15     | ~1 hr — sanity-check math against Turchin |
+| 3 | Replay engine (paramsAt, replayTo, branching) + unit tests   | 0.25     | ~2 hr — branching semantics; high-bug-density area |
+| 4 | Server: DB schema, migrations, repos + repo tests   | 0.20              | ~45 min                    |
+| 5 | Server: HTTP routes + zod validation + integration tests | 0.25         | ~1 hr — boundary contracts |
+| 6 | Client: Zustand store + api wrappers + store tests  | 0.20              | ~1 hr                      |
 | 7 | Client: Plot (recharts, cursor, click-to-rewind)    | 0.20              | ~1.5 hr — UX feel calls    |
 | 8 | Client: Controls (sliders, play/pause, branch UX)   | 0.25              | ~2 hr — UX feel calls      |
-| 9 | Tests (analytic logistic, replay determinism, HTTP) | 0.25              | ~1 hr — confirm what's covered |
-| 10 | Wire-up + polish + bug shakedown                   | 0.25              | ~2 hr — running the app, finding rough edges |
-| 11 | Docs: README run instructions, demo recipe         | 0.05              | ~30 min                    |
-|    | **Total**                                          | **~1.85 PM**      | **~13-14 hr human time**  |
+| 9 | Wire-up + polish + bug shakedown                    | 0.25              | ~2 hr — running the app, finding rough edges |
+| 10 | Docs: README run instructions, demo recipe         | 0.05              | ~30 min                    |
+|    | **Total**                                          | **~1.95 PM**      | **~13-14 hr human time**  |
+
+Row 9 of the old plan ("Tests") has been **distributed** into rows 0, 2, 3,
+4, 5, 6 — testing is no longer a final-week activity. The PM total ticks
+up slightly because writing tests first carries a small ceremony overhead,
+but the wire-up/polish row should shrink in practice as fewer bugs survive
+to integration.
 
 The supervision column assumes the per-slice review cadence in §11.1 — drop
 or skip reviews at your own risk.
@@ -497,46 +546,141 @@ or skip reviews at your own risk.
 Reviews happen at predictable seams so the user can budget time, and so
 Claude knows when to stop and ask rather than barrel through.
 
-- **End-of-slice review (mandatory).** After each weekly slice in §12,
-  Claude pauses, posts a "ready for review" summary listing changed files
-  and what to look at first, and waits. The user reads the diff, runs the
-  app where applicable, and either signs off or sends back changes. Budget
-  ~1-2 hr per slice review.
+- **Double-approval gate (every [HUMAN] approval step — mandatory, no
+  exceptions).** Claude does not proceed on a single approval. After the
+  user says "proceed" / "approved" / "go" / equivalent, Claude **echoes
+  the specific next action** ("Confirming: about to commit X with message
+  Y — proceed?") and waits for a second explicit confirmation. Only after
+  the second "yes" does Claude advance. The redundancy is the point:
+  short approvals are typo-prone (`n` intended as `no` can read as noise;
+  `ok` can be sent by mistake), and the cost of asking again is almost
+  zero. Even if the first approval is a full unambiguous sentence, still
+  echo and wait — the echo is the user's chance to catch a slip on the
+  first message. Do not optimise this away.
+- **Red review (start of every slice).** Claude writes the slice's failing
+  tests first, runs them, and pauses with a summary: which tests exist,
+  what each one asserts, and confirmation that all of them are red for the
+  right reason (missing module, missing function — not a typo). The user
+  signs off that the tests *describe the right behaviour* before any
+  implementation lands. ~15-30 min per slice. Subject to the
+  double-approval gate above.
+- **Green review (end of every slice, mandatory).** Implementation done,
+  all slice tests pass, no previously-green tests turned red. Claude posts
+  a "ready for review" summary listing changed files, the test output, and
+  what to look at first. Claude also (a) updates
+  [Phase1RiskRegister.md](Phase1RiskRegister.md) with any new risks or
+  status changes, (b) drafts a slice entry in
+  [Phase1Retros.md](Phase1Retros.md), and (c) fills in the slice's
+  [Phase1DoD.md](Phase1DoD.md) checklist. The user reads the diff, walks
+  the DoD, signs off on the retro, and either signs off or sends back
+  changes. ~1-2 hr per slice.
 - **Mid-slice check-in (on judgement calls).** When Claude hits a decision
   the design doesn't pin down — naming, an API shape, a UX micro-decision
-  — stop and ask in chat rather than picking and apologising later.
-  Cheap interrupt, expensive rework.
+  — stop and ask in chat rather than picking and apologising later. Cheap
+  interrupt, expensive rework.
 - **Pre-commit triage (every commit).** Claude does not push commits
   unprompted. Before any `git commit`, summarise what would land and get
-  explicit go-ahead.
-- **Math-correctness review (slice 1 + slice 5).** The Turchin sanity check
-  (§17 defaults → ~200-yr cycle) is the canonical numerical regression.
-  Walk through the integrator output together at the end of slice 1 and
-  again after the test suite lands in slice 5.
+  explicit go-ahead. A red commit (failing tests intentionally) is fine
+  but must be flagged as such in the commit message.
+- **Math-correctness review (after Slice 0 and after Slice 5).** The two
+  numerical regression anchors — analytic logistic and Turchin cycle
+  period — get a longer look. After Slice 0, the user confirms the
+  assertions and tolerances are sane while the tests are still red. After
+  Slice 5, the user confirms the tests are now green and the integrator
+  output matches expectation when plotted.
+
+### 11.2 Test-first discipline (rules)
+
+Operational rules that make "test-first" actually happen rather than slide
+into "tests at the end" by attrition.
+
+1. **No production code without a red test for it.** If Claude is about to
+   write a function whose behaviour is not pinned by a failing test, stop
+   and write the test first. Trivial glue (re-exports, type aliases, file
+   layout) is exempt.
+2. **The test must fail for the right reason.** A missing-module error
+   counts as red, but only on the first run — once the module exists, the
+   test must fail at an *assertion*, not an *import*. Otherwise the red
+   doesn't tell you anything.
+3. **Tests committed red are explicitly labelled.** Commit message starts
+   with `red:` if any test in the commit is expected to fail. The follow-up
+   commit that turns them green starts with `green:`. This makes the TDD
+   rhythm visible in `git log`.
+4. **`npm test` runs the whole suite.** No selective skipping by default.
+   Slow tests (the Turchin cycle-period anchor is the candidate) can sit
+   behind a `--run-slow` flag or a separate `npm run test:slow` if they
+   start hurting the inner loop — but only once they actually do.
+5. **Watcher is the inner loop.** `vitest --watch` runs continuously during
+   a slice. The red → green transition is observed live, not retrofitted.
+6. **UI components are out of scope.** Per the recommendation accepted
+   earlier, Plot and Controls get manual smoke-testing, not RTL tests.
+   The Zustand *store* (rows 6) is testable headlessly and *is* covered —
+   that's where the UI's interesting behaviour lives anyway.
+   *Property-based tests* (specs that hold for many generated inputs)
+   apply to the math layer only: model, integrator, replay engine. See
+   [Phase1PBT.md](Phase1PBT.md) for generators, properties, and run-count
+   policy. PBT tests live alongside example tests in the same `*.test.ts`
+   files.
+7. **CI is not part of Phase 1.** "Automated" here means the local
+   `vitest --watch` loop plus the discipline of running the full suite
+   before any commit. A GitHub Action wrapping `npm test` is a 10-line
+   add when the project leaves the prototype phase; not now.
 
 ## 12. Suggested sequencing
 
 Goal: get a meaningful demo running end-to-end as early as possible, then
-deepen.
+deepen. Each slice begins with failing tests (red review) and ends with
+those tests passing (green review). The per-slice test inventory below is
+what should be red at slice start.
 
-**Week 1.** Vertical slice: shared types → `rhsC` + `rk4Step` → a hardcoded
-client page that advances 200 years and renders one `LineChart`. No server,
-no events, no rewind. Validates the math and the plot stack.
+**Slice 0 — Test harness + red anchors.** Install `vitest`, `supertest`,
+shared workspace skeleton. Write the two numerical regression anchors as
+failing tests:
+- `logistic.analytic.test.ts` — imports `rk4Step` (doesn't exist yet),
+  integrates pure logistic to year 200, asserts within `1e-6` of the
+  closed-form $N(t) = K / (1 + ((K-N_0)/N_0) e^{-rt})$.
+- `turchin.cycle.test.ts` — imports `replayTo` (doesn't exist yet), runs
+  600 yr with §17 defaults, asserts first peak in `[80, 220]` yr and next
+  trough at least 100 yr after the peak. Loose tolerances on purpose.
 
-**Week 2.** Persistence: add server schema, `POST /api/runs` and
-`PUT /api/snapshots`, client flushes on every advance. Now refreshing the
-page restores the run.
+Also write the HTTP round-trip skeleton (`runs.roundtrip.test.ts`) against
+not-yet-existent routes. All red on `npm test`. Commit message: `red:`.
 
-**Week 3.** Events: introduce the timeline, replay-from-zero, parameter
-sliders that emit events. Branching as a destructive operation.
+**Slice 1 — Shared types + integrator.** Write `model.test.ts` and
+`integrator.test.ts` (rhsC algebra, single-step RK4 against hand-computed
+values, $S \ge 0$ clamp behavior). All red. Then implement
+`shared/`, `sim/model.ts`, `sim/integrator.ts` until those tests *and* the
+Slice 0 analytic-logistic anchor go green. Hardcoded client page renders
+the result; no server, no events. Math-correctness review on green.
 
-**Week 4.** Rewind + scrub: cursor, slider, click-on-plot navigation. Sort
-out the snapshot-cache reuse for performance.
+**Slice 2 — Replay engine.** Write `replay.test.ts` covering: `paramsAt`
+with zero/one/many param-set events; `replayTo` determinism (same events →
+same output, bit-identical); branching (drop-after-T then append) producing
+a different trajectory; mid-tick event handling lands at the exact event
+time, not the next tick boundary. All red. Implement `sim/replay.ts` until
+green. The Turchin cycle-period anchor from Slice 0 should also turn green
+here.
 
-**Weeks 5-6.** Tests, polish, demo recipe. Sanity-check Turchin's cited
-period (~200-300 yr) emerges from default parameters.
+**Slice 3 — Persistence + HTTP.** Write `db.test.ts` (repo CRUD against an
+in-memory SQLite) and complete `runs.roundtrip.test.ts` (create run, POST
+events, PUT snapshots, GET them back, byte-equal). All red. Implement
+`server/src/db.ts`, routes, zod schemas, until green.
 
-**Slack.** Two of the eight weeks are slack — they will get consumed.
+**Slice 4 — Client store wiring.** Write `runStore.test.ts` covering the
+store commands (`createRun`, `appendEvent`, `rewindTo`, `advance`,
+`flushToServer`) with a mocked fetch layer. All red. Implement
+`client/src/store/`. Page now restores on refresh.
+
+**Slice 5 — UI controls + scrubbing.** Plot, Controls, Timeline. No
+component tests; manual smoke-test against the running app. Slice ends with
+a math-correctness review: defaults produce a visible cycle, scrubbing
+rewinds correctly, branching warns and works.
+
+**Slice 6 — Polish + demo recipe.** Bug shakedown, README run instructions,
+short demo recipe doc. Full `npm test` green throughout.
+
+**Slack.** Two of the eight weeks are slack — they will get consumed by
+real-world bug surprises and review turnaround.
 
 ## 13. Non-Turchin models worth considering (no humans-as-prey)
 
@@ -627,3 +771,93 @@ const BLANK_RUN: Omit<Run, "id" | "createdAt"> = {
 `initialParams` come from Turchin §7.2.1 / Fig 7.1: $r=0.02\,\text{yr}^{-1}$,
 $\beta=0.25$, $c=3$, $s_0=1$. With these, the system runs a ~200-yr secular
 cycle — the canonical sanity-check for the integrator.
+
+## 18. Glossary
+
+Terms used throughout this document and its companions
+([Phase1Checklist.md](Phase1Checklist.md),
+[Phase1TestCases.md](Phase1TestCases.md),
+[HANDOVER.md](HANDOVER.md)). When a term is defined here, prose in those
+documents uses it without restating the definition.
+
+### TDD vocabulary
+
+Methodology origin: Kent Beck, *Test-Driven Development: By Example*
+(Addison-Wesley, 2002). Part of the Extreme Programming (XP) family. The
+red/green colour convention comes from the JUnit GUI test runner's
+red-bar/green-bar display, c. 2000.
+
+- **Red test.** A test that is *currently failing on purpose*, written
+  before the production code that will make it pass. Per §11.2 rule 2, on
+  the very first run a red test may fail at *import* (the module under
+  test does not yet exist); after the module exists it must fail at an
+  *assertion*, not an import. Either failure mode counts as red.
+- **Red phase.** The portion of a slice in which Claude writes the
+  slice's failing tests and runs them.
+- **Red review.** The [HUMAN] gate at the end of the red phase: the user
+  reads the failing tests and signs off that they describe the right
+  behaviour, *before* any implementation lands. See §11.1.
+- **Red commit.** A commit that intentionally contains failing tests.
+  Marked with the `red:` commit-message prefix (§11.2 rule 3) so the TDD
+  rhythm is visible in `git log`.
+- **Green.** State after the implementation lands and previously red
+  tests pass. **Green commit** = `green:` prefix. **Green review** = the
+  [HUMAN] sign-off after implementation, also called the end-of-slice
+  review (§11.1).
+- **Red-Green-Refactor.** Beck's canonical TDD cycle: write failing test
+  (red) → write minimum code to pass (green) → improve structure without
+  breaking tests (refactor). Phase 1 applies Red-Green strictly;
+  refactoring is opportunistic and not separately gated.
+
+### Project-specific vocabulary
+
+- **Slice.** A vertical chunk of work, roughly one week, that begins with
+  a red phase and ends with a green review. Sliced sequencing in §12;
+  per-slice checklist in [Phase1Checklist.md](Phase1Checklist.md).
+- **Anchor (regression anchor).** A high-stakes automated test that pins
+  a behaviour the rest of the project depends on. Phase 1 has two:
+  analytic-logistic (TestCases 0.2.1) and Turchin cycle period
+  (TestCases 0.2.2). Anchors are red at Slice 0 and turn green at Slices
+  1 and 2 respectively.
+- **Math-correctness review.** A specific [HUMAN] review (§11.1)
+  performed after Slice 0 (confirm anchor specs are right while still
+  red) and after Slice 5 (confirm anchors are green and the live UI
+  reproduces expected dynamics).
+- **Double-approval gate.** The protocol in §11.1 first bullet: at every
+  [HUMAN] approval step, Claude waits for two explicit user
+  confirmations (with Claude echoing the specific next action in between)
+  before advancing.
+- **Blank-run template.** The canonical default values used when a user
+  creates a new run. The constant lives in §17.
+- **Branching.** The destructive operation of dropping all events and
+  snapshots after a cursor time $t_r$, then appending a new event at
+  $t_r$. The original "future" is gone — not versioned, not undoable in
+  Phase 1. See §6.4.
+- **Cursor.** The point in run-time the UI is currently displaying. Stored
+  in the client store; advanced by Play / step; rewound by the slider or
+  click-on-plot. See §8.1.
+
+### Model / math vocabulary
+
+- **Secular cycle.** Turchin's term for the slow boom-and-bust dynamics
+  (period ~200-300 yr in his cited parameter range) that emerge from the
+  two-equation coupling between population and accumulated state
+  resources. See [Phase1Options.md](Phase1Options.md) §1.
+- **Carrying capacity, $k(S)$.** The maximum sustainable population, here
+  modelled as a saturating function of accumulated state resources $S$.
+  See §4.
+- **Tick.** One UI-time increment. Default = 1 month = 2,629,746 s.
+  Internally the integrator runs many small RK4 steps per tick (default
+  dt = 1 day = 1/365.25 yr). See §2.
+- **Snapshot.** The persisted (N, S) state at one tick boundary. Derived
+  from the event timeline; never the source of truth. See §3, §6.5.
+- **Event.** An append-only entry in a run's timeline. Phase 1 kinds:
+  `param-set`, `state-poke`, `stop`. The full event list **is** the run's
+  source of truth; snapshots are a derived cache. See §3, §6.
+- **Replay engine.** The pure-function code (`paramsAt`, `replayTo`) that
+  turns a run plus its event list into a snapshot sequence. Deterministic
+  by construction. See §6.
+- **Scaled units.** Turchin's Eq 7.4 is written in units where the base
+  carrying capacity = 1. We store N and S in those units; the
+  `peoplePerUnit` field on a `Run` multiplies for display only. See §16
+  item 1.
