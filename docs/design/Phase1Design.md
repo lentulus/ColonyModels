@@ -468,30 +468,51 @@ The shared-types story is best handled by a third workspace `shared/`
 containing only types — no runtime. Add it to the npm-workspaces config
 when both ends start referencing the same interfaces.
 
-## 11. Effort estimate (person-months)
-==> You are going to be doing all the progarmmings
+## 11. Effort estimate
 
+Claude implements; the user supervises and reviews. The implementation PM
+figures are kept for sizing intuition; the second column is what actually
+costs the user wall-clock time.
 
-Solo developer, part-time. PM = "person-month at full-time"; multiply by your
-own factor for part-time. These are honest, not optimistic.
+| # | Module                                              | Impl (Claude, PM) | Human supervision + review |
+| - | --------------------------------------------------- | ----------------- | -------------------------- |
+| 1 | Shared types workspace                              | 0.05              | ~30 min                    |
+| 2 | Model + integrator (rhsC, rk4Step, advanceTick)     | 0.10              | ~1 hr — sanity-check math against Turchin |
+| 3 | Replay engine (paramsAt, replayTo, branching)       | 0.20              | ~2 hr — branching semantics; high-bug-density area |
+| 4 | Server: DB schema, migrations, repos                | 0.15              | ~45 min                    |
+| 5 | Server: HTTP routes + zod validation                | 0.20              | ~1 hr — boundary contracts |
+| 6 | Client: Zustand store + api wrappers                | 0.15              | ~1 hr                      |
+| 7 | Client: Plot (recharts, cursor, click-to-rewind)    | 0.20              | ~1.5 hr — UX feel calls    |
+| 8 | Client: Controls (sliders, play/pause, branch UX)   | 0.25              | ~2 hr — UX feel calls      |
+| 9 | Tests (analytic logistic, replay determinism, HTTP) | 0.25              | ~1 hr — confirm what's covered |
+| 10 | Wire-up + polish + bug shakedown                   | 0.25              | ~2 hr — running the app, finding rough edges |
+| 11 | Docs: README run instructions, demo recipe         | 0.05              | ~30 min                    |
+|    | **Total**                                          | **~1.85 PM**      | **~13-14 hr human time**  |
 
-| # | Module                                              | PM    | Depends on |
-| - | --------------------------------------------------- | ----- | ---------- |
-| 1 | Shared types workspace                              | 0.05  | —          |
-| 2 | Model + integrator (rhsC, rk4Step, advanceTick)     | 0.10  | 1          |
-| 3 | Replay engine (paramsAt, replayTo, branching)       | 0.20  | 2          |
-| 4 | Server: DB schema, migrations, repos                | 0.15  | 1          |
-| 5 | Server: HTTP routes + zod validation                | 0.20  | 4          |
-| 6 | Client: Zustand store + api wrappers                | 0.15  | 1, 5       |
-| 7 | Client: Plot (recharts integration, cursor, click-to-rewind) | 0.20  | 6  |
-| 8 | Client: Controls (sliders, play/pause, branch UX)  | 0.25  | 6          |
-| 9 | Tests: integrator vs analytic logistic; replay determinism; HTTP round-trip | 0.25 | 3, 5 |
-| 10 | Wire-up + polish + bug shakedown                   | 0.25  | all        |
-| 11 | Docs: README run instructions, Phase 1 demo recipe | 0.05  | 10         |
-|   | **Total**                                           | **~1.85 PM** |    |
+The supervision column assumes the per-slice review cadence in §11.1 — drop
+or skip reviews at your own risk.
 
-For one part-time evening-and-weekends developer (say 25% capacity), that's
-**~6-8 calendar weeks**.
+### 11.1 Review cadence
+
+Reviews happen at predictable seams so the user can budget time, and so
+Claude knows when to stop and ask rather than barrel through.
+
+- **End-of-slice review (mandatory).** After each weekly slice in §12,
+  Claude pauses, posts a "ready for review" summary listing changed files
+  and what to look at first, and waits. The user reads the diff, runs the
+  app where applicable, and either signs off or sends back changes. Budget
+  ~1-2 hr per slice review.
+- **Mid-slice check-in (on judgement calls).** When Claude hits a decision
+  the design doesn't pin down — naming, an API shape, a UX micro-decision
+  — stop and ask in chat rather than picking and apologising later.
+  Cheap interrupt, expensive rework.
+- **Pre-commit triage (every commit).** Claude does not push commits
+  unprompted. Before any `git commit`, summarise what would land and get
+  explicit go-ahead.
+- **Math-correctness review (slice 1 + slice 5).** The Turchin sanity check
+  (§17 defaults → ~200-yr cycle) is the canonical numerical regression.
+  Walk through the integrator output together at the end of slice 1 and
+  again after the test suite lands in slice 5.
 
 ## 12. Suggested sequencing
 

@@ -95,6 +95,11 @@ them.
 
 ## What the user has signaled about working style
 
+- **The user is not writing code. Claude implements; the user supervises
+  and reviews.** Plan for the review cadence in Phase1Design.md §11.1:
+  end-of-slice review (mandatory), mid-slice check-in on judgement calls,
+  pre-commit triage on every commit, math-correctness review at slices 1
+  and 5. Don't push commits unprompted.
 - Strong preference for explicit, terse design docs with the *why* alongside
   the *what*. They annotate options with `==>` markers and expect later
   changes to thread back to those annotations.
