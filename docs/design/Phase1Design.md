@@ -167,26 +167,31 @@ Two model invariants enforced *outside* the RHS, around the integrator:
 
 ## 5. Integrator
 
-Plain RK4. ~20 lines, no library needed.
+Plain RK4, generic in the state type and the RHS function. ~20 lines, no
+library needed. See [ADR-0004](adr/0004-generic-rk4-integrator.md) for
+why `rk4Step` takes the RHS as a parameter rather than calling `rhsC`
+directly.
 
 ```ts
-function rk4Step(s: StateC, p: ParamsC, dt: number): StateC {
-  const k1 = rhsC(s, p);
-  const k2 = rhsC(addScaled(s, k1, dt/2), p);
-  const k3 = rhsC(addScaled(s, k2, dt/2), p);
-  const k4 = rhsC(addScaled(s, k3, dt),   p);
+function rk4Step<S>(s: S, dt: number, rhs: (s: S) => S): S {
+  const k1 = rhs(s);
+  const k2 = rhs(addScaled(s, k1, dt/2));
+  const k3 = rhs(addScaled(s, k2, dt/2));
+  const k4 = rhs(addScaled(s, k3, dt));
   const incr = combine(k1, k2, k3, k4);     // (k1 + 2k2 + 2k3 + k4) / 6
   return clampNonNeg(addScaled(s, incr, dt));
 }
 ```
 
-A "driver" advances by exactly one UI tick:
+A "driver" advances by exactly one UI tick, binding `rhsC` (and the
+active `ParamsC`) at the call site:
 
 ```ts
 function advanceTick(s: StateC, p: ParamsC, tickYears: number, dtIntegYears: number): StateC {
   const nSteps = Math.round(tickYears / dtIntegYears);
+  const rhs = (st: StateC) => rhsC(st, p);
   let cur = s;
-  for (let i = 0; i < nSteps; i++) cur = rk4Step(cur, p, dtIntegYears);
+  for (let i = 0; i < nSteps; i++) cur = rk4Step(cur, dtIntegYears, rhs);
   return cur;
 }
 ```

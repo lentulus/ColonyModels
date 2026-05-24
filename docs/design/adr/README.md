@@ -80,6 +80,7 @@ ADRs lose credibility.
 | [0001](0001-sqlite-for-phase-1-persistence.md) | Use better-sqlite3 for Phase 1 persistence | Proposed |
 | [0002](0002-hand-rolled-rk4-over-ode-library.md) | Hand-rolled RK4 over an ODE library | Proposed |
 | [0003](0003-client-owns-the-simulation.md) | Client owns the simulation; server is durable storage only | Proposed |
+| [0004](0004-generic-rk4-integrator.md) | Generic `rk4Step` decoupled from `rhsC` | Proposed |
 
 ## Decisions worth capturing as ADRs (backlog)
 

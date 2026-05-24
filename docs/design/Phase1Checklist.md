@@ -38,6 +38,19 @@ looks unambiguous — the echo is what gives the user a chance to catch a
 slip on their first message. This rule is not negotiable mid-execution;
 if it ever feels like friction, that's it working as intended.
 
+**Checklist-is-the-contract.** Every action that gets done on this
+project must correspond to a numbered step in this document. If
+something needs to happen and there is no step for it — a carry-over
+from a prior slice's retro, a newly discovered prerequisite, an
+architectural decision that didn't fit a slice when first planned, a
+bug-fix that surfaces mid-slice — **add the numbered step(s) here
+first** (which is itself a checklist-amend action subject to the
+double-approval gate), *then* execute. This rule applies retroactively:
+if work has already happened off-checklist, the next step is to amend
+the checklist to record it before continuing. Retro action-item tables
+and HANDOVER.md prose are advisory only; only this checklist is the
+contract.
+
 **Green-review tracking sweep.** Every green review (the `N.3` block of
 each slice) includes a tracking sweep, sub-numbered as `N.3.{n}a`. In
 this step Claude:
@@ -192,6 +205,43 @@ right reason** (missing modules). No production code yet.
 
 ---
 
+## Slice 0 → Slice 1 bridge — ADR-0004 (rk4Step API decision)
+
+Goal: resolve Slice 0 retro action item #1 (rk4Step API generic vs
+bound) before any Slice 1 code. Lands as a `docs:` commit per
+[HANDOVER.md](HANDOVER.md) "Slice 1 expected commit cadence". This
+section was added retroactively per the **Checklist-is-the-contract**
+rule above, after the underlying ADR drafting had already begun in
+chat; the steps below record what was done so the checklist accurately
+reflects executed work.
+
+- [x] **0.5.1 [AI]** Surface the rk4Step API trade-off (Option A
+      generic vs Option B bound to `rhsC`) to the user; obtain a
+      decision.
+      *Result:* Posted 2026-05-24 in chat with side-by-side previews;
+      user picked **Option A** (generic integrator).
+- [x] **0.5.2 [AI]** Draft [adr/0004-generic-rk4-integrator.md](adr/0004-generic-rk4-integrator.md);
+      edit [Phase1Design.md §5](Phase1Design.md) to swap signature to
+      `rk4Step<S>(s, dt, rhs)` and update `advanceTick` to bind `rhsC`
+      via a closure; add row to [adr/README.md](adr/README.md) Current
+      ADRs table; mark Slice 0 retro action item #1 resolved in
+      [Phase1Retros.md](Phase1Retros.md).
+      *Result:* Done 2026-05-24. Four files modified/created. ADR
+      explicitly notes that Slice 0's `logistic.analytic.test.ts`
+      (0.2.1) will be re-written against the new API in Slice 1.2.x
+      when `integrator.ts` lands — not a separate task.
+- [x] **0.5.3 [AI]** Pre-commit triage; post proposed `docs:` commit
+      message.
+      *Result:* Posted in chat 2026-05-24. Five files (the four above
+      plus this checklist update once 0.5.x are recorded). Subject:
+      "docs: ADR-0004 — generic rk4Step decoupled from rhsC".
+- [ ] **0.5.4 [HUMAN]** Approve the `docs:` commit.
+      *Result:* —
+- [ ] **0.5.5 [AI]** Run `git commit` with `docs:` prefix. Report hash.
+      *Result:* —
+
+---
+
 ## Slice 1 — Shared types + model + integrator
 
 Goal: pure functions for the ODE RHS and one RK4 step land. The Slice 0
@@ -229,7 +279,13 @@ red until Slice 2.
 
 ### 1.2 Implementation
 
-- [ ] **1.2.1 [AI]** Define shared types (`StateC`, `ParamsC`, `Run`,
+- [ ] **1.2.1.a [AI]** Switch `shared/package.json` `main` → `exports`
+      with `./src/index.ts` (resolves Slice 0 retro action item #2).
+      *Result:* —
+- [ ] **1.2.1.b [AI]** Add TS path mapping for `@colonymodels/shared`
+      in client + server tsconfigs (resolves Slice 0 retro action item #3).
+      *Result:* —
+- [ ] **1.2.1.c [AI]** Define shared types (`StateC`, `ParamsC`, `Run`,
       `Event`, `Snapshot`, `ModelKind`) in `shared/src/`.
       *Result:* —
 - [ ] **1.2.2 [AI]** Implement `client/src/sim/model.ts` exporting `rhsC`.
@@ -575,6 +631,11 @@ throughout.
 
 - [ ] **6.3.1 [AI]** Style / copy / layout adjustments per the triage
       list. No tests required.
+      *Result:* —
+- [ ] **6.3.2 [AI]** Revisit R-013 (`esbuild`/`vite` vulnerability,
+      resolves Slice 0 retro action item #4): try
+      `npm audit fix --force`, evaluate impact on the dev server,
+      update R-013 status in [Phase1RiskRegister.md](Phase1RiskRegister.md).
       *Result:* —
 
 ### 6.4 Documentation
