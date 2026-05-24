@@ -17,22 +17,24 @@ when every box is ticked (or every gap is explicitly waived in writing).
 - [ ] **No previously-green test now red.** No regressions in tests from
       earlier slices.
 - [ ] **Anchors still green.** Slice 0's regression anchors
-      ([Phase1TestCases.md](Phase1TestCases.md) 0.2.1, 0.2.2, 0.2.3) all
-      pass — once each has turned green for the first time, it stays
-      green for the remainder of the project.
+      ([Phase1AutomatedTests.md](Phase1AutomatedTests.md) 0.2.1, 0.2.2,
+      0.2.3) all pass — once each has turned green for the first time,
+      it stays green for the remainder of the project.
 - [ ] **No silent skips.** `npm test` summary shows zero `skipped` /
       `todo` tests, *or* every skip is documented in
-      [Phase1TestCases.md](Phase1TestCases.md) with a reason and a target
-      slice for un-skipping.
+      [Phase1AutomatedTests.md](Phase1AutomatedTests.md) with a reason
+      and a target slice for un-skipping.
 - [ ] **PBT properties (where applicable) green.** Property-based tests
       from [Phase1PBT.md](Phase1PBT.md) covering code touched in this
       slice all pass at the configured run count.
 
 ### Documentation
 
-- [ ] **TestCases execution logs populated.** Every case touched in this
-      slice has a filled-in entry in its **Execution log** block (Status,
-      Date, Evidence).
+- [ ] **Test execution logs populated.** Every case touched in this
+      slice has a filled-in **Execution log** block (Status, Date,
+      Evidence) in the appropriate doc —
+      [Phase1AutomatedTests.md](Phase1AutomatedTests.md) for automated
+      cases, [Phase1TestCases.md](Phase1TestCases.md) for manual cases.
 - [ ] **Checklist `Result:` lines populated.** Every step completed in
       this slice has a meaningful `Result:` line in
       [Phase1Checklist.md](Phase1Checklist.md) — not just "done" but a

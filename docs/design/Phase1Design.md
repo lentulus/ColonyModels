@@ -13,7 +13,8 @@ execution and process. Quick map:
 | -------- | ------- |
 | [README.md](README.md) | Index of `docs/design/` with reading order. |
 | [Phase1Checklist.md](Phase1Checklist.md) | Step-by-step execution log; numbered by slice. |
-| [Phase1TestCases.md](Phase1TestCases.md) | Detailed verification specs, numbered in alignment with the checklist. |
+| [Phase1AutomatedTests.md](Phase1AutomatedTests.md) | Detailed specs for every **automated** test, numbered in alignment with the checklist. |
+| [Phase1TestCases.md](Phase1TestCases.md) | Detailed procedures for every **manual** verification, numbered in alignment with the checklist. |
 | [Phase1DoD.md](Phase1DoD.md) | Slice-agnostic Definition of Done; gate every green review. |
 | [Phase1PBT.md](Phase1PBT.md) | Property-based testing plan; companion to TestCases for the math layer. |
 | [Phase1RiskRegister.md](Phase1RiskRegister.md) | Active risks + mitigations; reviewed at every green review. |
@@ -503,7 +504,9 @@ costs the user wall-clock time.
 >   of the slicing in §12.
 > - [Phase1DoD.md](Phase1DoD.md) is the explicit Definition of Done; every
 >   green review fills it in and signs off.
-> - [Phase1TestCases.md](Phase1TestCases.md) holds the detailed test specs.
+> - [Phase1AutomatedTests.md](Phase1AutomatedTests.md) holds the detailed
+>   specs for automated tests; [Phase1TestCases.md](Phase1TestCases.md)
+>   holds the procedures for manual verifications.
 > - [Phase1PBT.md](Phase1PBT.md) adds property-based tests to the math layer.
 > - [Phase1RiskRegister.md](Phase1RiskRegister.md) is reviewed at every green
 >   review.

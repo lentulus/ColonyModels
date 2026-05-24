@@ -12,7 +12,8 @@ captures the *thinking*.
 | 2 | [Phase1Options.md](Phase1Options.md) | Understand the model-choice survey and the user's annotated decisions (`==>` markers). |
 | 3 | [Phase1Design.md](Phase1Design.md) | **The authoritative design.** §18 Glossary if any vocabulary in the other docs is unfamiliar. |
 | 4 | [Phase1Checklist.md](Phase1Checklist.md) | The running record of execution. **Look here first to know what's next.** |
-| 5 | [Phase1TestCases.md](Phase1TestCases.md) | Detailed spec for every verification step. Use when writing a test or running a manual check. |
+| 5a | [Phase1AutomatedTests.md](Phase1AutomatedTests.md) | Detailed specs for every **automated** test case. Use when writing a test or reviewing a red test. |
+| 5b | [Phase1TestCases.md](Phase1TestCases.md) | Detailed procedures for every **manual** verification. Use when running a manual check. |
 | 6 | [Phase1DoD.md](Phase1DoD.md) | Per-slice Definition of Done. Gate every green review against this. |
 | 7 | [Phase1PBT.md](Phase1PBT.md) | Property-based test plan. Companion to TestCases for the math layer. |
 | 8 | [Phase1RiskRegister.md](Phase1RiskRegister.md) | Running list of project risks + mitigations. |
@@ -25,8 +26,10 @@ captures the *thinking*.
 - **Phase1Design.md** — design *intent*. The "what we're building and why."
   Updated when intent or contract changes.
 - **Phase1Checklist.md** — execution *progress*. Updated as work happens.
-- **Phase1TestCases.md** — verification *contracts*. Updated when a new
-  test is specified or a result is recorded.
+- **Phase1AutomatedTests.md** — automated test *contracts*. Updated
+  when a new automated test is specified or its execution log is recorded.
+- **Phase1TestCases.md** — manual verification *procedures*. Updated
+  when a new manual check is added or its execution log is recorded.
 - **Phase1DoD.md** — slice exit *criteria*. Rarely changes mid-project.
 - **Phase1RiskRegister.md** — risk *log*. Reviewed at each green review.
 - **Phase1Retros.md** — slice *reflections*. Written once per slice, never edited.

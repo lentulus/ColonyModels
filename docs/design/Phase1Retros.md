@@ -22,8 +22,9 @@ Three prompts, in this order. Keep it brief — half a page total is fine.
    PBT runs for the integrator from 100 to 500" is actionable.
 
 Optional: **Action items.** Carry-overs into the next slice (or the
-[Risk Register](Phase1RiskRegister.md), or the [TestCases](Phase1TestCases.md)
-ad-hoc section). Pin each with an owner.
+[Risk Register](Phase1RiskRegister.md), or the ad-hoc sections of
+[AutomatedTests](Phase1AutomatedTests.md) §6.x.y / [TestCases](Phase1TestCases.md) §6.x.y).
+Pin each with an owner.
 
 ---
 

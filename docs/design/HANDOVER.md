@@ -1,22 +1,37 @@
 # Phase 1 Handover
 
-Written 2026-05-23, last refresh 2026-05-23. If the Claude window closes
+Written 2026-05-23, last refresh 2026-05-24. If the Claude window closes
 mid-task, this is the file the next assistant should read first. It is a
 pointer document — it does not restate the design; it tells you what's
 been decided and what to do next.
 
 ## TL;DR for a fresh session
 
-Phase 1 planning is **complete**. No code has been written yet. The next
-concrete action is [Phase1Checklist.md](Phase1Checklist.md) step
-**0.1.1 [AI]**: propose vitest + supertest configuration as a one-screen
-plan, then wait for double-approval before installing anything.
+Phase 1 is **in progress**. Slice 0 setup block complete (test harness
+installed and wired across `client`, `server`, `shared` workspaces; the
+`shared/` workspace is newly created with a placeholder `src/index.ts`).
+No production code, no tests yet — `npm test` runs the pipeline cleanly
+but reports "No test files found" in each workspace.
+
+The next concrete action is [Phase1Checklist.md](Phase1Checklist.md) step
+**0.2.1 [AI]**: write `client/src/sim/logistic.analytic.test.ts` per the
+spec in [Phase1AutomatedTests.md](Phase1AutomatedTests.md) 0.2.1. It will
+fail at import (the `./integrator` module doesn't exist yet) — that's
+the expected red state.
+
+**Uncommitted work to consider committing first** (see "Current repo
+state" below): the 16 planning docs in `docs/design/`, the entire
+`shared/` workspace, three `vitest.config.ts` files, script edits to
+every `package.json`, and `package-lock.json` from the dep installs.
+The user may want a commit-or-not decision before proceeding to 0.2.1.
 
 If the user's first message in the new session is a continuation cue
-("ok, proceed", "ready", or similar), treat it as the prompt to start
-0.1.1 — but post the proposal and wait for the **second** approval before
-touching the filesystem. See "Working-style rules" below for the
-double-approval gate.
+("ok, proceed", "ready", or similar), treat it as the prompt to *ask*
+about commit cadence and then start 0.2.1. Writing a test file is
+reversible and is gated separately by the 0.3.3 red review; no
+double-approval needed for the file write itself. But the double-approval
+gate **does** apply to any `git commit` or `npm install`. See
+"Working-style rules" below.
 
 ## What the project is
 
@@ -43,10 +58,14 @@ this project runs on **port 8001**.
    implementation / review), with `[AI]` / `[HUMAN]` tags on every step
    and `Result:` lines that get filled in as we go. **This is where to
    look first to know what's next.**
-6. [Phase1TestCases.md](Phase1TestCases.md) — detailed specification of
-   every verification step (automated and manual), numbered in alignment
-   with the checklist. Use this when writing a test (red phase), reviewing
-   a red test, or running a manual procedure.
+6. [Phase1AutomatedTests.md](Phase1AutomatedTests.md) — detailed
+   specifications for every **automated** test (run via `npm test`),
+   numbered in alignment with the checklist. Use when writing a test
+   (red phase) or reviewing a red test.
+6b. [Phase1TestCases.md](Phase1TestCases.md) — detailed procedures for
+   every **manual** verification (display / terminal / visual checks),
+   numbered in alignment with the checklist. Use when running a manual
+   procedure.
 7. [Phase1DoD.md](Phase1DoD.md) — slice-agnostic Definition of Done.
    Gate every green review against this checklist; record sign-off in
    the table.
@@ -89,19 +108,33 @@ Equations cited in the design are from Chapter 7 and Appendix A.
 ```
 ColonyModels/
 ├── client/    Vite + React + R3F scaffold (App.tsx renders a spinning cube)
+│              + vitest.config.ts; vitest + fast-check installed (0.1.4)
 ├── server/    Express scaffold (only /health endpoint, port 8001)
+│              + vitest.config.ts; vitest + supertest installed (0.1.4)
+├── shared/    NEW (0.1.3): workspace skeleton w/ placeholder src/index.ts,
+│              tsconfig.json, vitest.config.ts; vitest installed (0.1.4)
 └── docs/
-    ├── design/  15 planning docs (see README.md for the index); adr/ subdir
+    ├── design/  16 planning docs (see README.md for the index); adr/ subdir
     └── reference/  Turchin PDF (gitignored)
 ```
 
 Single commit on `main`: `d94f60e Initial scaffold: npm-workspaces TS monorepo (client + server)`.
-**No application code yet** — only scaffolding and planning docs. The R3F
-canvas in [client/src/App.tsx](../../client/src/App.tsx) will be replaced
-by the 2D plot UI starting in Slice 1.
+**No application code yet** — only scaffolding, vitest configs, and
+planning docs. **No test files yet** either — 0.2.1-0.2.3 write them as
+intentionally-red anchors. The R3F canvas in
+[client/src/App.tsx](../../client/src/App.tsx) will be replaced by the 2D
+plot UI starting in Slice 1.
 
-Planning docs are uncommitted (all live under `docs/design/` and are
-visible via `git status`); see "First steps in a new session" below.
+**Uncommitted as of 2026-05-24** (verify with `git status`): all 16
+planning docs in `docs/design/`, the entire `shared/` workspace, three
+`vitest.config.ts` files, script additions to every `package.json`, and
+`package-lock.json` updates from the dep installs. See "First steps in
+a new session" for the recommended commit cadence.
+
+**Known risk filed during Slice 0:** R-013 in
+[Phase1RiskRegister.md](Phase1RiskRegister.md) — `esbuild` ≤ 0.24.2
+vulnerability via `vite` 5.4.11 in client. Low impact in our
+localhost-only context; planned mitigation evaluation in Slice 6.
 
 ## Sequencing — what to build next
 
@@ -137,17 +170,17 @@ $S \ge 0$ clamp is broken — fix before moving on.
 
 ## Libraries already chosen (Phase1Design.md §9)
 
-- `better-sqlite3` (server persistence) — see [ADR-0001](adr/0001-sqlite-for-phase-1-persistence.md)
-- `zod` (boundary validation, shared between workspaces)
-- `nanoid` (RunId)
-- `recharts` (2D plotting)
-- `zustand` (client state)
-- `vitest` (tests)
-- `supertest` (HTTP integration tests)
-- `fast-check` (property-based testing) — see [Phase1PBT.md](Phase1PBT.md)
+**Installed (as of Slice 0, 2026-05-24):**
+- `vitest@^4.1.7` — in `client`, `server`, `shared`
+- `fast-check` — in `client` only (PBT, see [Phase1PBT.md](Phase1PBT.md))
+- `supertest` + `@types/supertest` — in `server` only
 
-None of these are installed yet — they go in with the first slice that needs
-them (Slice 0 installs vitest, supertest, and fast-check).
+**Not yet installed** (land in their respective slices):
+- `better-sqlite3` (server persistence, Slice 3) — see [ADR-0001](adr/0001-sqlite-for-phase-1-persistence.md)
+- `zod` (boundary validation, Slice 3)
+- `nanoid` (RunId, Slice 1 or 3)
+- `recharts` (2D plotting, Slice 1)
+- `zustand` (client state, Slice 4)
 
 ## Working-style rules (non-negotiable)
 
@@ -208,18 +241,29 @@ If the session is fresh and the user has not given specific direction:
 
 1. Read [README.md](README.md) — gets you oriented in 30 seconds.
 2. `git log --oneline -20` and `git status` — confirm what's been
-   committed and what's mid-flight. (Planning docs are uncommitted as
-   of this handover; the user may want to commit them first thing.)
+   committed and what's mid-flight. **Currently a large block of work is
+   uncommitted** (see "Current repo state" above); the user may want a
+   commit-or-not decision before continuing.
 3. Open [Phase1Checklist.md](Phase1Checklist.md) and look for the first
-   unchecked box. The current expected starting point is **step 0.1.1**
-   (Claude proposes vitest + supertest configuration).
+   unchecked box. The current expected starting point is **step 0.2.1**
+   (write `client/src/sim/logistic.analytic.test.ts` per
+   [Phase1AutomatedTests.md](Phase1AutomatedTests.md) 0.2.1).
 4. Compare `client/src/` and `server/src/` against the file layout in
    Phase1Design.md §10. If files exist past what the checklist shows
    done, the user did something between sessions — ask before proceeding.
-5. Read this file's "Decisions already made" section and confirm the user
-   hasn't superseded any of them in a more recent design-doc edit
-   (check `git log --oneline docs/design/` and inspect Phase1Design.md
-   for any `==>` annotations you don't recognise).
+5. Read this file's "Decisions already made" and "Working-style rules"
+   sections and confirm the user hasn't superseded any of them in a more
+   recent design-doc edit (check `git log --oneline docs/design/` and
+   inspect Phase1Design.md for any `==>` annotations you don't recognise).
+
+**Recommended commit cadence at this exact moment** (suggest to the user,
+don't act unilaterally):
+- One commit for **planning docs** — all 16 files under `docs/design/`
+  including the `adr/` subdir.
+- One `red:` commit for **Slice 0 setup** — `shared/` workspace,
+  vitest configs, package.json edits, package-lock.json updates.
+- Then proceed to 0.2 test-writing; commit 0.2 as a separate `red:`
+  commit once the three anchor tests are written and confirmed red.
 
 ## If you're resuming mid-slice
 

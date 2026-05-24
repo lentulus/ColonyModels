@@ -1,9 +1,9 @@
 # Phase 1 Property-Based Testing Plan
 
-Companion to [Phase1TestCases.md](Phase1TestCases.md). Whereas TestCases
-describes *example-based* tests (specific inputs → specific outputs), this
-document specifies *property-based* tests (specifications that should hold
-for many generated inputs).
+Companion to [Phase1AutomatedTests.md](Phase1AutomatedTests.md). Whereas
+AutomatedTests describes *example-based* tests (specific inputs → specific
+outputs), this document specifies *property-based* tests (specifications
+that should hold for many generated inputs).
 
 The math layer — model, integrator, replay engine — is where PBT earns
 its keep most clearly. The UI, HTTP, and storage layers are out of scope:
@@ -48,7 +48,7 @@ npm install -D --workspace client fast-check
   feed `Number.MAX_VALUE` into `rhsC` finds bugs in JS arithmetic, not
   in the model.
 
-## Properties — `client/src/sim/model.test.ts` (extends TestCases 1.1.2)
+## Properties — `client/src/sim/model.test.ts` (extends AutomatedTests 1.1.2)
 
 For the `rhsC(s, p)` function. Generators:
 
@@ -73,7 +73,7 @@ const arbParams = fc.record({ r: arbR, beta: arbBeta, c: arbC, s0: arbS0 });
 | P-M-6 | `k(0, p) === 1` for all valid p | Base carrying capacity is 1 (the scaling convention). |
 | P-M-7 | `rhsC(s, p)` returns finite numbers for all valid inputs | No NaN, no Infinity. |
 
-## Properties — `client/src/sim/integrator.test.ts` (extends TestCases 1.1.3)
+## Properties — `client/src/sim/integrator.test.ts` (extends AutomatedTests 1.1.3)
 
 For `rk4Step` and `advanceTick`.
 
@@ -86,7 +86,7 @@ For `rk4Step` and `advanceTick`.
 | P-I-5 | `advanceTick(s, p, t1, dt) == advanceTick(advanceTick(s, p, t1/2, dt), p, t1/2, dt)` to within `1e-9` | Composability — advancing in two halves equals advancing in one. (Holds because params don't change mid-advance.) |
 | P-I-6 | For `s.N == 0`: `advanceTick(...).N == 0` for all `(p, t)` | Zero population stays zero (no spontaneous resurrection). |
 
-## Properties — `client/src/sim/replay.test.ts` (extends TestCases 2.1.1)
+## Properties — `client/src/sim/replay.test.ts` (extends AutomatedTests 2.1.1)
 
 For `paramsAt` and `replayTo`.
 

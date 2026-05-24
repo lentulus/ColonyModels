@@ -6,12 +6,19 @@ Use this document as the running record: tick boxes as items complete, fill
 in `Result:` lines with whatever is worth remembering (commit hashes, test
 output excerpts, decisions, links to chat exchanges).
 
-For every verification step in this checklist (any item that writes a test
-or runs a review), the **detailed specification, procedure, pass criteria,
-and execution log** live in [Phase1TestCases.md](Phase1TestCases.md), under
-the matching item number. Update the test-cases doc with results as you go;
-the checklist's `Result:` line should reference back to that entry (e.g.
-"see TestCases 1.3.3 — pass on 2026-05-30").
+For every verification step in this checklist, the **detailed
+specification, procedure, pass criteria, and execution log** live in one
+of two companion documents, under the matching item number:
+
+- **Automated tests** (run via `npm test`) — see
+  [Phase1AutomatedTests.md](Phase1AutomatedTests.md).
+- **Manual verifications** (require a human at a display / terminal) —
+  see [Phase1TestCases.md](Phase1TestCases.md).
+
+Update the relevant doc's execution log as work proceeds; the checklist's
+`Result:` line should reference back to that entry (e.g. "see TestCases
+1.3.3 — pass on 2026-05-30" or "see AutomatedTests 1.1.3 — pass at
+commit `abc123`").
 
 **Legend.** `[AI]` = Claude does it. `[HUMAN]` = the user does it. Items
 without a tag are joint or automatic (e.g. the test runner producing output).
@@ -54,21 +61,44 @@ right reason** (missing modules). No production code yet.
 
 ### 0.1 Setup
 
-- [ ] **0.1.1 [AI]** Propose vitest + supertest configuration and where to
+- [x] **0.1.1 [AI]** Propose vitest + supertest configuration and where to
       put it (root vs. per-workspace). Post a one-screen plan.
-      *Result:* —
+      *Result:* Proposal posted 2026-05-24 in chat. Per-workspace vitest
+      configs (`vitest.config.ts` each), `environment: "node"`, `fast-check`
+      in client + `supertest` in server. Three decisions surfaced for the
+      user: coverage reporting (recommend defer), workspace test order
+      (recommend sequential), strict-mode flags (recommend default).
+      Awaiting double-approval at 0.1.2.
 - [ ] **0.1.2 [HUMAN]** Approve the configuration approach (or redirect).
       *Result:* —
-- [ ] **0.1.3 [AI]** Add `shared/` workspace skeleton with `package.json`,
+- [x] **0.1.3 [AI]** Add `shared/` workspace skeleton with `package.json`,
       `tsconfig.json`, and root `workspaces` entry.
-      *Result:* —
-- [ ] **0.1.4 [AI]** Install `vitest` in client + server (and shared if
+      *Result:* Created on 2026-05-24. Files: `shared/package.json` (name
+      `@colonymodels/shared`, build/typecheck/test scripts), `shared/tsconfig.json`
+      (extends base, NodeNext, declaration + declarationMap),
+      `shared/src/index.ts` (empty placeholder, `export {};`). Root
+      `package.json` `workspaces` array now `["client", "server", "shared"]`.
+- [x] **0.1.4 [AI]** Install `vitest` in client + server (and shared if
       needed); install `supertest` + `@types/supertest` in server.
-      *Result:* —
-- [ ] **0.1.5 [AI]** Add `test` script to root `package.json` running
+      *Result:* Installed 2026-05-24. `vitest@^4.1.7` in client/server/shared;
+      `fast-check` in client (per Phase1PBT.md); `supertest` + `@types/supertest`
+      in server. Three `npm install` calls returned clean (totals: 40 + 24 + 1
+      packages added, 391/415/417 audited, 0 install errors). `npm audit`
+      flagged 2 moderate vulnerabilities (esbuild ≤ 0.24.2 transitive via
+      vite 5.4.11; advisory GHSA-67mh-4wv8-2f99) — filed as R-013 in
+      [Phase1RiskRegister.md](Phase1RiskRegister.md) on 2026-05-24.
+- [x] **0.1.5 [AI]** Add `test` script to root `package.json` running
       `npm --workspaces run test` (or equivalent). Add `test` and
       `test:watch` to each workspace.
-      *Result:* —
+      *Result:* Done 2026-05-24. Three new files:
+      `client/vitest.config.ts`, `server/vitest.config.ts`,
+      `shared/vitest.config.ts` (all identical: `defineConfig`,
+      `environment: "node"`, `include: ["src/**/*.test.ts"]`).
+      Each workspace `package.json` now has `"test": "vitest run"` and
+      `"test:watch": "vitest"`. Root `package.json` has
+      `"test": "npm --workspaces run test"`. Verified by running `npm test`:
+      vitest runs in all 3 workspaces, finds no test files, exits with code 1
+      ("No test files found") — pipeline is wired; tests are next.
 
 ### 0.2 Test-first (write the red anchors)
 
