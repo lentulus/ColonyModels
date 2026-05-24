@@ -181,10 +181,14 @@ right reason** (missing modules). No production code yet.
       and three modified tracking docs (Phase1Checklist with 0.2.1-0.4.0a
       marks, Phase1Retros with Slice 0 entry, Phase1DoD with Slice 0
       waivers). Proposed message uses `red:` prefix per §11.2 rule 3.
-- [ ] **0.4.2 [HUMAN]** Approve the commit.
-      *Result:* —
-- [ ] **0.4.3 [AI]** Run `git commit` with `red:` prefix. Report hash.
-      *Result:* —
+- [x] **0.4.2 [HUMAN]** Approve the commit.
+      *Result:* Approved 2026-05-24 via "commit approved" → echoed exact
+      `git add` + `git commit` commands → confirmed via "proceed".
+- [x] **0.4.3 [AI]** Run `git commit` with `red:` prefix. Report hash.
+      *Result:* Committed 2026-05-24 as `e9cbad9 red: Slice 0 anchor tests`
+      (6 files changed, 386 insertions, 24 deletions). `git status` clean
+      after commit. Branch `main` now 1 commit ahead of `origin/main`; no
+      push performed.
 
 ---
 

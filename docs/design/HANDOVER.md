@@ -1,37 +1,63 @@
 # Phase 1 Handover
 
-Written 2026-05-23, last refresh 2026-05-24. If the Claude window closes
-mid-task, this is the file the next assistant should read first. It is a
-pointer document — it does not restate the design; it tells you what's
-been decided and what to do next.
+Written 2026-05-23, last refresh 2026-05-24 (post-Slice 0). If the Claude
+window closes mid-task, this is the file the next assistant should read
+first. It is a pointer document — it does not restate the design; it
+tells you what's been decided and what to do next.
 
 ## TL;DR for a fresh session
 
-Phase 1 is **in progress**. Slice 0 setup block complete (test harness
-installed and wired across `client`, `server`, `shared` workspaces; the
-`shared/` workspace is newly created with a placeholder `src/index.ts`).
-No production code, no tests yet — `npm test` runs the pipeline cleanly
-but reports "No test files found" in each workspace.
+**Slice 0 is complete.** All three regression anchors are written and
+intentionally red at import. Committed as `e9cbad9 red: Slice 0 anchor
+tests`. Working tree has only one trivial uncommitted change
+(`docs/design/Phase1Checklist.md` — the 0.4.2 and 0.4.3 mark-offs after
+the commit landed; will travel with the next commit naturally).
 
-The next concrete action is [Phase1Checklist.md](Phase1Checklist.md) step
-**0.2.1 [AI]**: write `client/src/sim/logistic.analytic.test.ts` per the
-spec in [Phase1AutomatedTests.md](Phase1AutomatedTests.md) 0.2.1. It will
-fail at import (the `./integrator` module doesn't exist yet) — that's
-the expected red state.
-
-**Uncommitted work to consider committing first** (see "Current repo
-state" below): the 16 planning docs in `docs/design/`, the entire
-`shared/` workspace, three `vitest.config.ts` files, script edits to
-every `package.json`, and `package-lock.json` from the dep installs.
-The user may want a commit-or-not decision before proceeding to 0.2.1.
+The next concrete action is [Phase1Checklist.md](Phase1Checklist.md)
+**Slice 1**, starting with step **1.1.1 [AI]** — but **STOP** and resolve
+the rk4Step API decision first; see "Pre-Slice-1 decision required" below.
 
 If the user's first message in the new session is a continuation cue
-("ok, proceed", "ready", or similar), treat it as the prompt to *ask*
-about commit cadence and then start 0.2.1. Writing a test file is
-reversible and is gated separately by the 0.3.3 red review; no
-double-approval needed for the file write itself. But the double-approval
-gate **does** apply to any `git commit` or `npm install`. See
-"Working-style rules" below.
+("ok, proceed", "ready", "go"), treat it as the prompt to surface the
+rk4Step decision, not to dive into 1.1.1. The decision needs the user's
+input; charging ahead would force a refactor mid-slice.
+
+## Pre-Slice-1 decision required (do this first)
+
+The Slice 0 retro identified an architectural call that should land
+before any Slice 1 implementation code. Currently [Phase1Design.md §5](Phase1Design.md)
+defines `rk4Step(s: StateC, p: ParamsC, dt: number)` — bound to the
+project's `rhsC` function. Two upcoming tests are in tension with that:
+
+- **TestCases 0.2.1** (already written, in commit `e9cbad9`) — sidestepped
+  the issue by using the production `rk4Step` with `c=0, beta=0` to
+  reduce Turchin Eq 7.4 to pure logistic.
+- **TestCases 1.1.3** (about to be written in Slice 1) — explicitly
+  "substitute a temporary RHS `f(x) = x`" for unit-testing the integrator
+  algorithm. This **cannot** work with the current bound-to-rhsC API.
+
+Two options:
+
+- **Option A: Generic integrator.** Change §5 to
+  `rk4Step<S>(s: S, dt: number, rhs: (s: S) => S): S` (or similar). 1.1.3
+  works as specified; 0.2.1 needs to be re-written to pass `rhsLogistic`
+  as a function. Cleaner separation between integrator and model. **An
+  ADR-0004 candidate** if accepted.
+- **Option B: Bound to rhsC.** Keep §5 as written. Rewrite 1.1.3 to
+  substitute parameters that turn `rhsC` into a known form, the way 0.2.1
+  did. Avoids generalising; harder to unit-test the integrator
+  algorithm in isolation.
+
+**Recommended approach:** post the trade-off summary to the user, ask
+which option, file ADR-0004 if option A is chosen, then proceed to
+Slice 1.1.1. The retro's action item table flags this; see Phase1Retros.md
+Slice 0 "Action items".
+
+## What it means if any of the above is unfamiliar
+
+The TL;DR depends on knowing what `rk4Step`, "test-first", "Slice 0",
+"red commit" mean. Read [Phase1Design.md §18 Glossary](Phase1Design.md)
+first if those phrases don't land.
 
 ## What the project is
 
@@ -107,34 +133,63 @@ Equations cited in the design are from Chapter 7 and Appendix A.
 
 ```
 ColonyModels/
-├── client/    Vite + React + R3F scaffold (App.tsx renders a spinning cube)
-│              + vitest.config.ts; vitest + fast-check installed (0.1.4)
+├── client/    Vite + React + R3F scaffold (App.tsx still renders the spinning cube)
+│              + vitest.config.ts; vitest + fast-check installed
+│              + src/sim/logistic.analytic.test.ts (red, → green at 1.2.5)
+│              + src/sim/turchin.cycle.test.ts     (red, → green at 2.2.3)
 ├── server/    Express scaffold (only /health endpoint, port 8001)
-│              + vitest.config.ts; vitest + supertest installed (0.1.4)
-├── shared/    NEW (0.1.3): workspace skeleton w/ placeholder src/index.ts,
-│              tsconfig.json, vitest.config.ts; vitest installed (0.1.4)
+│              + vitest.config.ts; vitest + supertest installed
+│              + src/routes/runs.roundtrip.test.ts (red, → green at 3.2.5)
+├── shared/    Workspace skeleton w/ placeholder src/index.ts,
+│              tsconfig.json, vitest.config.ts; vitest installed
 └── docs/
     ├── design/  16 planning docs (see README.md for the index); adr/ subdir
     └── reference/  Turchin PDF (gitignored)
 ```
 
-Single commit on `main`: `d94f60e Initial scaffold: npm-workspaces TS monorepo (client + server)`.
-**No application code yet** — only scaffolding, vitest configs, and
-planning docs. **No test files yet** either — 0.2.1-0.2.3 write them as
-intentionally-red anchors. The R3F canvas in
+**Git log (most recent first):**
+
+```
+e9cbad9 red: Slice 0 anchor tests                  ← Slice 0 close
+ab90532 Step 0.1 complete                          ← Slice 0 setup
+a4c56e8 almost done design
+2f98311 Phase 1 design updated
+925bfce Phase 1 design first draft
+d94f60e Initial scaffold: npm-workspaces TS monorepo
+```
+
+Branch `main` is 1 commit ahead of `origin/main` (`e9cbad9`); no push
+performed. **No production code yet** — all three sim/route source
+modules are still missing on purpose; the red anchor tests assert their
+contracts ahead of implementation. The R3F canvas in
 [client/src/App.tsx](../../client/src/App.tsx) will be replaced by the 2D
 plot UI starting in Slice 1.
 
-**Uncommitted as of 2026-05-24** (verify with `git status`): all 16
-planning docs in `docs/design/`, the entire `shared/` workspace, three
-`vitest.config.ts` files, script additions to every `package.json`, and
-`package-lock.json` updates from the dep installs. See "First steps in
-a new session" for the recommended commit cadence.
+**Uncommitted as of 2026-05-24 (handoff):** `docs/design/Phase1Checklist.md`
+only — contains the 0.4.2 + 0.4.3 mark-offs that happened after the
+`e9cbad9` commit landed. Will travel with the next commit. Verify with
+`git status`.
 
-**Known risk filed during Slice 0:** R-013 in
-[Phase1RiskRegister.md](Phase1RiskRegister.md) — `esbuild` ≤ 0.24.2
-vulnerability via `vite` 5.4.11 in client. Low impact in our
-localhost-only context; planned mitigation evaluation in Slice 6.
+**`npm test` snapshot (run after `e9cbad9`):**
+- client: 2 test files, both fail at `Cannot find module` (`./integrator`,
+  `./replay`) → expected red
+- server: 1 test file, fails at `Cannot find module ../app` → expected red
+- shared: no test files → "exit code 1, No test files found" → expected
+
+**Known risks** (see [Phase1RiskRegister.md](Phase1RiskRegister.md)):
+- **R-013** filed during Slice 0: `esbuild` ≤ 0.24.2 vulnerability via
+  `vite` 5.4.11 in client. Low impact in our localhost-only context;
+  planned mitigation evaluation in Slice 6.
+- R-001 – R-012: pre-Slice-0 risks, all Open.
+
+**Pending action items from Slice 0 retro** (in priority order, repeated
+from [Phase1Retros.md](Phase1Retros.md)):
+1. **rk4Step API decision** — see "Pre-Slice-1 decision required" above.
+2. Switch `shared/package.json` `main` → `exports` with `./src/index.ts`
+   (Slice 1, step 1.2.1).
+3. Add TS path mapping for `@colonymodels/shared` in client + server
+   tsconfigs (Slice 1, step 1.2.1).
+4. Revisit R-013 — try `npm audit fix --force` (Slice 6 polish).
 
 ## Sequencing — what to build next
 
@@ -240,30 +295,33 @@ $S \ge 0$ clamp is broken — fix before moving on.
 If the session is fresh and the user has not given specific direction:
 
 1. Read [README.md](README.md) — gets you oriented in 30 seconds.
-2. `git log --oneline -20` and `git status` — confirm what's been
-   committed and what's mid-flight. **Currently a large block of work is
-   uncommitted** (see "Current repo state" above); the user may want a
-   commit-or-not decision before continuing.
-3. Open [Phase1Checklist.md](Phase1Checklist.md) and look for the first
-   unchecked box. The current expected starting point is **step 0.2.1**
-   (write `client/src/sim/logistic.analytic.test.ts` per
-   [Phase1AutomatedTests.md](Phase1AutomatedTests.md) 0.2.1).
-4. Compare `client/src/` and `server/src/` against the file layout in
-   Phase1Design.md §10. If files exist past what the checklist shows
-   done, the user did something between sessions — ask before proceeding.
-5. Read this file's "Decisions already made" and "Working-style rules"
-   sections and confirm the user hasn't superseded any of them in a more
-   recent design-doc edit (check `git log --oneline docs/design/` and
-   inspect Phase1Design.md for any `==>` annotations you don't recognise).
+2. `git log --oneline -20` and `git status` — confirm what's committed
+   and what's mid-flight. Expected: `e9cbad9` at HEAD, one uncommitted
+   modification (`Phase1Checklist.md` with the 0.4.x mark-offs).
+3. Read **"Pre-Slice-1 decision required"** above. The rk4Step API
+   call needs to be made before Slice 1.1.1; surface it to the user
+   before any test-writing.
+4. Once the API call is made (and ADR-0004 filed if Option A is
+   chosen), open [Phase1Checklist.md](Phase1Checklist.md) and start at
+   step **1.1.1 [AI]** (write `shared/src/types.test.ts` or skip with
+   a note per §11.2 rule 1 exemption).
+5. Sanity check: `client/src/sim/`, `server/src/routes/` exist with the
+   three red anchor test files; no source modules (`integrator.ts`,
+   `replay.ts`, `app.ts`) exist yet. If anything's different, the user
+   did something between sessions — ask before proceeding.
+6. Read this file's "Decisions already made" and "Working-style rules"
+   sections and confirm none have been superseded since `e9cbad9`
+   (check `git log --oneline docs/design/`).
 
-**Recommended commit cadence at this exact moment** (suggest to the user,
-don't act unilaterally):
-- One commit for **planning docs** — all 16 files under `docs/design/`
-  including the `adr/` subdir.
-- One `red:` commit for **Slice 0 setup** — `shared/` workspace,
-  vitest configs, package.json edits, package-lock.json updates.
-- Then proceed to 0.2 test-writing; commit 0.2 as a separate `red:`
-  commit once the three anchor tests are written and confirmed red.
+**Slice 1 expected commit cadence** (subject to double-approval per
+[Phase1Design.md §11.1](Phase1Design.md)):
+- After ADR-0004 lands (if Option A): a separate small commit
+  containing the ADR and any Phase1Design.md §5 edits, prefix `docs:`.
+- One `red:` commit at end of Slice 1.1.x (tests written, all red for
+  the right reason — confirmed at 1.1.6 red review).
+- One `green:` commit at end of Slice 1.2.x (implementation lands, the
+  Slice 1 tests AND the Slice 0 logistic anchor all turn green —
+  confirmed at 1.3 green review).
 
 ## If you're resuming mid-slice
 
