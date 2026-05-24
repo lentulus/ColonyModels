@@ -30,26 +30,71 @@ Pin each with an owner.
 
 ## Slice 0 — Test harness + red regression anchors
 
-**Date:** —
-**Duration (red phase → green sign-off):** —
+**Date:** 2026-05-23 (planning) → 2026-05-24 (setup + tests).
+**Duration (red phase → red commit):** the slice is intentionally red-only;
+the regression anchors won't turn green until Slices 1 & 2.
 
 ### What surprised me?
 
-*(fill in at green review)*
+- **Vitest 4.x** is the current major (4.1.7), not the 1.x/2.x I'd have
+  expected from a casual reading of the spec. Installs clean; API surface
+  used in our tests is stable across the recent majors.
+- **Design tension** at 0.2.1: `rk4Step(s, p, dt)` as written in
+  Phase1Design.md §5 is bound to `rhsC`. The natural way to test it
+  against pure logistic is either (A) generalise to take an RHS function,
+  or (B) reduce Turchin Eq 7.4 to pure logistic via `c=0, beta=0` and use
+  the production API. Picked (B) for Slice 0 to keep within the existing
+  design; this defers the generic-API question to Slice 1's `1.1.3`
+  (which substitutes `f(x) = x` for clamp tests and *will* force the
+  question).
+- `npm audit` flagged a moderate vuln (R-013) on the *existing* client
+  dependency tree (vite/esbuild), not the new installs. Good that the
+  audit ran reflexively; if I'd missed it, it would have stayed hidden
+  until Slice 6.
+- `shared/`'s `main: "dist/index.js"` is a footgun — when consumers
+  (client/server tests) try to `import { Run } from "@colonymodels/shared"`
+  in Slice 1, they'll need either a build step or a switch to `exports`
+  with a `src/` entry. Flagged for Slice 1.
 
 ### What worked — keep doing?
 
-*(fill in at green review)*
+- **Test-first forced an API conversation up front.** Without writing
+  the analytic-logistic test, the rk4Step-bound-to-rhsC API would have
+  shipped from Slice 1 and only broken at 1.1.3. Catching it during
+  Slice 0 spec-writing was cheap.
+- **Phase1AutomatedTests.md specs were detailed enough** to write tests
+  against directly. Pass criteria, sample times, tolerances all reused
+  verbatim. Only deviation: chose option B for 0.2.1 (documented inline
+  in the test header).
+- **Double-approval gate** caught no typos but also created no friction —
+  the echo-and-wait is fast to read and gives a useful summary of what's
+  about to happen. Worth keeping for every gate.
+- **Embedding §17 BLANK_RUN verbatim in the test** rather than importing
+  it from a not-yet-existent shared module: avoids spurious red, keeps
+  the test self-contained, with a comment to keep both in sync.
 
 ### What would I change next time?
 
-*(fill in at green review)*
+- **In Slice 1: write 1.1.3 before 1.1.2.** 1.1.3's "substitute `f(x) = x`"
+  case is the API-forcing test; resolving the generic-rk4Step question
+  early avoids a refactor mid-slice.
+- **Set up TypeScript path mapping** (`@colonymodels/shared` → `shared/src/`)
+  during Slice 1 so test files can stop hand-rolling local type duplicates.
+- **Switch `shared/package.json`** to `exports` with `./src/index.ts`
+  (drop the dist build) — Slice 1 work.
+- **Note an interim status to the user before the green review** on
+  long slices. Even within Slice 0, the gap between 0.1.5 and 0.2.3 was
+  ~10 minutes of work; a mid-slice status didn't add value here, but on
+  longer slices it will.
 
 ### Action items
 
 | Item | Owner | Target slice / doc |
 | ---- | ----- | ------------------ |
-| *(none yet)* | | |
+| Decide rk4Step generic API (A) vs reduced rhsC (B); make the call before writing 1.1.3 | Project lead + Claude | Slice 1 red review |
+| Switch `shared/package.json` `main` → `exports` with `./src/index.ts` | Claude | Slice 1, step 1.2.1 |
+| Add TS path mapping for `@colonymodels/shared` in client + server tsconfigs | Claude | Slice 1, step 1.2.1 |
+| Revisit R-013 (`esbuild`/`vite` vuln) — try `npm audit fix --force` | Claude | Slice 6 polish |
 
 ---
 

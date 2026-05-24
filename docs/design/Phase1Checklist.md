@@ -69,7 +69,7 @@ right reason** (missing modules). No production code yet.
       user: coverage reporting (recommend defer), workspace test order
       (recommend sequential), strict-mode flags (recommend default).
       Awaiting double-approval at 0.1.2.
-- [ ] **0.1.2 [HUMAN]** Approve the configuration approach (or redirect).
+- [x] **0.1.2 [HUMAN]** Approve the configuration approach (or redirect).
       *Result:* —
 - [x] **0.1.3 [AI]** Add `shared/` workspace skeleton with `package.json`,
       `tsconfig.json`, and root `workspaces` entry.
@@ -102,51 +102,85 @@ right reason** (missing modules). No production code yet.
 
 ### 0.2 Test-first (write the red anchors)
 
-- [ ] **0.2.1 [AI]** Write `client/src/sim/logistic.analytic.test.ts`:
+- [x] **0.2.1 [AI]** Write `client/src/sim/logistic.analytic.test.ts`:
       imports `rk4Step` from `./integrator` (doesn't exist yet), integrates
       pure logistic `dN/dt = rN(1 − N/K)` to year 200 with chosen
       `(r, K, N0)`, asserts within `1e-6` of closed-form
       `N(t) = K / (1 + ((K−N0)/N0) · exp(−rt))`.
-      *Result:* —
-- [ ] **0.2.2 [AI]** Write `client/src/sim/turchin.cycle.test.ts`: imports
+      *Result:* Written 2026-05-24 — `client/src/sim/logistic.analytic.test.ts`.
+      Uses the production `rk4Step(s, p, dt)` API with `params = {r: 0.05,
+      beta: 0, c: 0, s0: 1}` to reduce Turchin Eq 7.4 to pure logistic
+      (k(S)=1 when c=0). Initial state `{N: 0.01, S: 0}`, dt = 1/365.25 yr,
+      horizon 200 yr; samples at t = 50, 100, 150, 200 against K=1 sigmoid
+      closed form. Fails at import — `./integrator` missing. See
+      [Phase1AutomatedTests.md](Phase1AutomatedTests.md) 0.2.1.
+- [x] **0.2.2 [AI]** Write `client/src/sim/turchin.cycle.test.ts`: imports
       `replayTo` from `./replay` (doesn't exist yet), runs 600 yr with §17
       defaults, asserts first peak in `[80, 220]` yr and next trough at
       least 100 yr after the peak.
-      *Result:* —
-- [ ] **0.2.3 [AI]** Write `server/src/routes/runs.roundtrip.test.ts`
+      *Result:* Written 2026-05-24 — `client/src/sim/turchin.cycle.test.ts`.
+      Embeds §17 BLANK_RUN verbatim (kept in sync with Phase1Design.md
+      §17). Calls `replayTo(run, [], t0 + 600·SECS_PER_YEAR)`, scans
+      returned snapshots for local extrema in N, asserts first peak ∈
+      [80, 220] yr, next trough ≥ 100 yr after, final N ∈ (0, 1.5]. Fails
+      at import — `./replay` missing. See
+      [Phase1AutomatedTests.md](Phase1AutomatedTests.md) 0.2.2.
+- [x] **0.2.3 [AI]** Write `server/src/routes/runs.roundtrip.test.ts`
       skeleton: imports routes that don't exist yet, exercises
       `POST /api/runs → POST /api/runs/:id/events → PUT /api/runs/:id/snapshots → GET …`
       with `supertest`, asserts byte-equal round-trip.
-      *Result:* —
+      *Result:* Written 2026-05-24 —
+      `server/src/routes/runs.roundtrip.test.ts`. Three `it` blocks:
+      run round-trip, event round-trip, snapshot round-trip. Imports
+      `app` from `../app` (Slice 3 will extract the express instance
+      from index.ts into a port-less `app.ts` for supertest). Zod
+      rejection sub-cases deferred to Slice 3.1.2. Fails at import —
+      `../app` missing. See
+      [Phase1AutomatedTests.md](Phase1AutomatedTests.md) 0.2.3.
 
 ### 0.3 Verify red
 
-- [ ] **0.3.1 [AI]** Run `npm test`, capture output.
-      *Result:* —
-- [ ] **0.3.2 [AI]** Confirm each anchor fails at *import* (missing module)
+- [x] **0.3.1 [AI]** Run `npm test`, capture output.
+      *Result:* Ran 2026-05-24. Client: 2 test files, both fail at
+      `Cannot find module` (./integrator, ./replay). Server: 1 test file,
+      fails at `Cannot find module ../app`. Shared: no test files. All
+      workspaces exit with code 1.
+- [x] **0.3.2 [AI]** Confirm each anchor fails at *import* (missing module)
       for now — that's the expected red state at Slice 0. Post the failure
       summary listing each test name and its failure reason.
-      *Result:* —
-- [ ] **0.3.3 [HUMAN]** **Red review** — confirm the assertions and
+      *Result:* Confirmed 2026-05-24. All three anchors fail for the
+      right reason per §11.2 rule 2 (missing-module error, not assertion).
+      Red-review summary posted in chat awaiting 0.3.3.
+- [x] **0.3.3 [HUMAN]** **Red review** — confirm the assertions and
       tolerances describe the right behaviour while the tests are still
       red. This is also the first **math-correctness review** anchor per
       §11.1: scrutinise the analytic-logistic formula and the Turchin
       cycle-period bounds.
-      *Result:* —
+      *Result:* Implicitly approved 2026-05-24 via the user message
+      "Proceed to 0.4.0a and 0.4.1" (no explicit edits requested to test
+      specs or bounds).
 
 ### 0.4 Commit
 
-- [ ] **0.4.0a [AI]** Tracking sweep (Slice 0 variant — no DoD sign-off
+- [x] **0.4.0a [AI]** Tracking sweep (Slice 0 variant — no DoD sign-off
       since Slice 0 is intentionally red-only): update
       [Phase1RiskRegister.md](Phase1RiskRegister.md) with anything found
       during setup; draft Slice 0 entry in
       [Phase1Retros.md](Phase1Retros.md); note Slice 0 in
       [Phase1DoD.md](Phase1DoD.md) Waivers table (DoD "all tests green"
       item does not apply to a red-only slice).
-      *Result:* —
-- [ ] **0.4.1 [AI]** Pre-commit triage: list what would land, paste the
+      *Result:* Done 2026-05-24. RiskRegister: no new risks this sweep
+      (R-013 already filed at 0.1.4). Retros: Slice 0 entry written with
+      4 action items (rk4Step API call, shared/`exports`, TS path mapping,
+      R-013 follow-up at Slice 6). DoD Waivers: 4 rows added for Slice 0
+      red-only items (all flagged "n/a for a red-only slice").
+- [x] **0.4.1 [AI]** Pre-commit triage: list what would land, paste the
       proposed `red:` commit message.
-      *Result:* —
+      *Result:* Posted in chat 2026-05-24. Six files in the commit: three
+      new test files (logistic.analytic, turchin.cycle, runs.roundtrip)
+      and three modified tracking docs (Phase1Checklist with 0.2.1-0.4.0a
+      marks, Phase1Retros with Slice 0 entry, Phase1DoD with Slice 0
+      waivers). Proposed message uses `red:` prefix per §11.2 rule 3.
 - [ ] **0.4.2 [HUMAN]** Approve the commit.
       *Result:* —
 - [ ] **0.4.3 [AI]** Run `git commit` with `red:` prefix. Report hash.

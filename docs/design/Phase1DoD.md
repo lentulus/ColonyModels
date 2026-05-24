@@ -81,7 +81,10 @@ If a DoD item cannot be satisfied this slice, document the waiver here
 
 | Slice | Item waived | Reason | Target slice to satisfy |
 | ----- | ----------- | ------ | ----------------------- |
-| *(none yet)* | | | |
+| 0 | "All slice tests green" | Slice 0 is intentionally red-only — it writes the regression anchors that the downstream slices then turn green. Per Phase1Design.md §12: "All red on `npm test`. Commit message: `red:`." | Slice 1 (logistic anchor) + Slice 2 (Turchin anchor) + Slice 3 (HTTP roundtrip) |
+| 0 | "No previously-green test now red" | No tests existed before Slice 0; vacuously true. | n/a |
+| 0 | "Anchors still green" | Same as above — anchors are red at end of Slice 0 by design. | Slices 1-3 |
+| 0 | "PBT properties green" | PBT properties don't land until Slice 1 (model + integrator) and Slice 2 (replay). | Slices 1-2 |
 
 A waiver requires explicit `[HUMAN]` approval (subject to the double-
 approval gate, like any other gated decision).
