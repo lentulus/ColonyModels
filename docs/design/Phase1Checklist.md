@@ -235,10 +235,16 @@ reflects executed work.
       *Result:* Posted in chat 2026-05-24. Five files (the four above
       plus this checklist update once 0.5.x are recorded). Subject:
       "docs: ADR-0004 — generic rk4Step decoupled from rhsC".
-- [ ] **0.5.4 [HUMAN]** Approve the `docs:` commit.
-      *Result:* —
-- [ ] **0.5.5 [AI]** Run `git commit` with `docs:` prefix. Report hash.
-      *Result:* —
+- [x] **0.5.4 [HUMAN]** Approve the `docs:` commit.
+      *Result:* Approved 2026-05-24 via "you may commit" → second
+      confirmation given the same message ("Confirming: about to run
+      `git add` … Proceed?" was already in flight).
+- [x] **0.5.5 [AI]** Run `git commit` with `docs:` prefix. Report hash.
+      *Result:* Committed 2026-05-24 as
+      `7160f01 docs: ADR-0004 + checklist amendments for off-checklist work`
+      (5 files changed, 215 insertions, 10 deletions). `git status`
+      clean after commit. Branch `main` now 1 commit ahead of
+      `origin/main`; no push.
 
 ---
 
@@ -250,30 +256,78 @@ red until Slice 2.
 
 ### 1.1 Test-first
 
-- [ ] **1.1.1 [AI]** Write `shared/src/types.test.ts` (if any non-trivial
+- [x] **1.1.1 [AI]** Write `shared/src/types.test.ts` (if any non-trivial
       type helpers exist; otherwise skip with a note — types per §11.2
       rule 1 exemption).
-      *Result:* —
-- [ ] **1.1.2 [AI]** Write `client/src/sim/model.test.ts`: asserts `rhsC`
+      *Result:* Skipped 2026-05-24. [Phase1Design.md §3](Phase1Design.md)
+      defines only pure data shapes (`RunId` alias, `ModelKind` literal
+      union, `ParamsC` / `StateC` / `Run` / `Event` / `Snapshot` record
+      types) — zero runtime behaviour to test. §11.2 rule 1 exempts
+      "type aliases" from the test-first requirement; no
+      `shared/src/types.test.ts` written. Slice 1.2.1.c will create the
+      types in `shared/src/` directly. If a future slice adds a runtime
+      type helper (constructor, validator, narrowing function), it gets
+      its own test file at that point.
+- [x] **1.1.2 [AI]** Write `client/src/sim/model.test.ts`: asserts `rhsC`
       output on hand-computed inputs for at least three cases (low N, near
       carrying capacity, S = 0).
-      *Result:* —
-- [ ] **1.1.3 [AI]** Write `client/src/sim/integrator.test.ts`:
+      *Result:* Written 2026-05-24 — `client/src/sim/model.test.ts`.
+      Three cases using §17 defaults (r=0.02, β=0.25, c=3, s0=1):
+      (1) low N (N=0.01, S=0) — expects dN=0.000198, dS=0.0074;
+      (2) near k (N=0.99, S=0) — expects dN=0.000198, dS=−0.2376
+      (also pins dS<0); (3) mid N with S>0 (N=0.5, S=1) — expects
+      dN=0.008, dS=0.275 (exercises k(S)=1+c·S/(s0+S)=2.5).
+      All arithmetic shown in test comments for red-review audit.
+      Tolerance 1e-12. Fails at import — `./model` missing. See
+      [Phase1AutomatedTests.md](Phase1AutomatedTests.md) 1.1.2.
+- [x] **1.1.3 [AI]** Write `client/src/sim/integrator.test.ts`:
       single-step RK4 against hand-computed values for a trivial RHS
       (e.g. `dx/dt = x` for one step); `N ≥ 0` clamp; `S ≥ 0` manual
       reset (post-step, not in RHS).
-      *Result:* —
-- [ ] **1.1.4 [AI]** Run `npm test`, confirm Slice 1 tests fail at
+      *Result:* Written 2026-05-24 — `client/src/sim/integrator.test.ts`.
+      Three setups per AutomatedTests 1.1.3: (A) `rk4Step` against
+      analytic RK4 Taylor-4 of e^h for dN/dt=N at h ∈ {0.01, 0.1},
+      tolerance 1e-12; closed-form derivation in test comments. (B)
+      forcing RHS returning dN/dt=−100 from N=0.1 with dt=1 — unclamped
+      would be −99.9; asserts N ≥ 0 (clamp inside rk4Step). (C) tests
+      `advanceTick` (where the S reset lives per ADR-0004 + §4) with
+      β=10, c=0 driving dS/dt ≈ −0.901; asserts S === 0 (strict
+      equality — not abs, not ε). Uses generic `rk4Step` signature from
+      ADR-0004. Fails at import — `./integrator` missing. See
+      [Phase1AutomatedTests.md](Phase1AutomatedTests.md) 1.1.3.
+- [x] **1.1.4 [AI]** Run `npm test`, confirm Slice 1 tests fail at
       assertion or import.
-      *Result:* —
-- [ ] **1.1.5 [AI]** Post **red-review summary**: list each new test, what
+      *Result:* Ran 2026-05-24. All five test files fail at import
+      (missing-module), per §11.2 rule 2 first-run allowance.
+      **Client (4 fails):**
+      `integrator.test.ts` → missing `./integrator` (Slice 1.1.3 new);
+      `model.test.ts` → missing `./model` (Slice 1.1.2 new);
+      `logistic.analytic.test.ts` → missing `./integrator` (Slice 0 anchor, still red — green at 1.2.x);
+      `turchin.cycle.test.ts` → missing `./replay` (Slice 0 anchor, still red until Slice 2).
+      **Server (1 fail):** `runs.roundtrip.test.ts` → missing `../app`
+      (Slice 0 anchor, still red until Slice 3).
+      **Shared:** no test files (1.1.1 skipped per §11.2 rule 1 type
+      exemption); vitest exits with code 1 "No test files found" — same
+      state as after Slice 0. All three workspaces exit code 1.
+- [x] **1.1.5 [AI]** Post **red-review summary**: list each new test, what
       it asserts, why it's red.
-      *Result:* —
-- [ ] **1.1.6 [HUMAN]** **Red review** — sign off that the tests describe
+      *Result:* Posted 2026-05-24 in chat. Three sections (1.1.1 skipped,
+      1.1.2 model with the three hand-computed cases, 1.1.3 integrator
+      Setups A/B/C); Slice 0 anchors' status restated; four explicit
+      asks for the red review (numerics, boundary semantics,
+      architectural fit for Setup C via `advanceTick`, tolerances).
+- [x] **1.1.6 [HUMAN]** **Red review** — sign off that the tests describe
       the right behaviour.
-      *Result:* —
-- [ ] **1.1.7 [HUMAN]** Approve red commit.
-      *Result:* —
+      *Result:* Implicitly approved 2026-05-24: user advanced directly
+      to 1.1.7 ("1.1.7 approved") without flagging the three
+      hand-computed (dN, dS) pairs, the RK4 Taylor-4 formula, the
+      N≥0 / strict S===0 boundary assertions, or the Setup C
+      test-via-`advanceTick` choice surfaced in 1.1.5. Matches the
+      Slice 0 0.3.3 implicit-approval pattern.
+- [x] **1.1.7 [HUMAN]** Approve red commit.
+      *Result:* Approved 2026-05-24 via "1.1.7 approved". Echo +
+      second-confirmation in flight per double-approval gate before
+      `git commit` runs at 1.1.8.
 - [ ] **1.1.8 [AI]** Commit with `red:` prefix. Report hash.
       *Result:* —
 
