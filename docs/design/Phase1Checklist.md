@@ -328,8 +328,12 @@ red until Slice 2.
       *Result:* Approved 2026-05-24 via "1.1.7 approved". Echo +
       second-confirmation in flight per double-approval gate before
       `git commit` runs at 1.1.8.
-- [ ] **1.1.8 [AI]** Commit with `red:` prefix. Report hash.
-      *Result:* —
+- [x] **1.1.8 [AI]** Commit with `red:` prefix. Report hash.
+      *Result:* Committed 2026-05-24 as
+      `996b079 red: Slice 1 anchor tests — model + integrator`
+      (3 files changed, 251 insertions, 18 deletions). `git status`
+      clean after commit. Branch `main` now 2 commits ahead of
+      `origin/main`; no push.
 
 ### 1.2 Implementation
 
