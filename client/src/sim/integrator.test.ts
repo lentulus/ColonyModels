@@ -14,7 +14,7 @@ import { rk4Step, advanceTick } from "./integrator";
  *      of e^h (since RK4 reproduces Taylor to 4th order on a linear
  *      autonomous scalar ODE). Tests the algorithm in isolation, using
  *      the generic rhs parameter introduced in
- *      [ADR-0004](../../../docs/design/adr/0004-generic-rk4-integrator.md).
+ *      [Decision 0004](../../../docs/design/adr/0004-generic-rk4-integrator.md).
  *
  *   B) `N >= 0` clamp inside rk4Step: drive the unclamped result
  *      strongly negative with a forcing RHS; assert N comes back non-
@@ -26,7 +26,7 @@ import { rk4Step, advanceTick } from "./integrator";
  *      `advanceTick`). Strict equality: the reset is `S = 0`, not
  *      `S = abs(S)` and not `S = max(S, ε)`. Tests through `advanceTick`
  *      because that's the API surface that hosts the reset per §4 and
- *      ADR-0004.
+ *      Decision 0004.
  *
  * Status at write time (Slice 1 red): expected to fail at *import* —
  * `./integrator` does not yet exist. Turns green at Slice 1.2.x.
@@ -77,7 +77,7 @@ describe("rk4Step — N >= 0 clamp inside the step (Setup B)", () => {
 
 describe("advanceTick — S >= 0 manual reset outside the step (Setup C)", () => {
   // Use rhsC via advanceTick (which binds rhsC under the hood per
-  // Phase1Design §5 post-ADR-0004). Parameters chosen so dS/dt is
+  // Phase1Design §5 post-Decision 0004). Parameters chosen so dS/dt is
   // strongly negative immediately and S would overshoot below zero in
   // a single sub-step:
   //   At start: N=0.1, S=0.01, c=0 → k(S)=1 → production = 0.1·0.99 = 0.099

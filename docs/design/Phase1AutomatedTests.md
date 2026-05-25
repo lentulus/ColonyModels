@@ -400,7 +400,7 @@ method + body of each call; assertions check those, not just call counts.
 - No tests skipped without an entry in this document or in
   [Phase1TestCases.md](Phase1TestCases.md) explaining why.
 - Slice 0 anchors (0.2.1, 0.2.2, 0.2.3) are present and green.
-- All PBT properties from [Phase1PBT.md](Phase1PBT.md) pass.
+- All Asserts properties from [Phase1PBT.md](Phase1PBT.md) pass.
 
 **Execution log.**
 - Status: `pending`

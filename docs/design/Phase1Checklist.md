@@ -205,13 +205,13 @@ right reason** (missing modules). No production code yet.
 
 ---
 
-## Slice 0 → Slice 1 bridge — ADR-0004 (rk4Step API decision)
+## Slice 0 → Slice 1 bridge — Decision 0004 (rk4Step API decision)
 
 Goal: resolve Slice 0 retro action item #1 (rk4Step API generic vs
 bound) before any Slice 1 code. Lands as a `docs:` commit per
 [HANDOVER.md](HANDOVER.md) "Slice 1 expected commit cadence". This
 section was added retroactively per the **Checklist-is-the-contract**
-rule above, after the underlying ADR drafting had already begun in
+rule above, after the underlying Decision drafting had already begun in
 chat; the steps below record what was done so the checklist accurately
 reflects executed work.
 
@@ -224,9 +224,9 @@ reflects executed work.
       edit [Phase1Design.md §5](Phase1Design.md) to swap signature to
       `rk4Step<S>(s, dt, rhs)` and update `advanceTick` to bind `rhsC`
       via a closure; add row to [adr/README.md](adr/README.md) Current
-      ADRs table; mark Slice 0 retro action item #1 resolved in
+      Decisions table; mark Slice 0 retro action item #1 resolved in
       [Phase1Retros.md](Phase1Retros.md).
-      *Result:* Done 2026-05-24. Four files modified/created. ADR
+      *Result:* Done 2026-05-24. Four files modified/created. Decision
       explicitly notes that Slice 0's `logistic.analytic.test.ts`
       (0.2.1) will be re-written against the new API in Slice 1.2.x
       when `integrator.ts` lands — not a separate task.
@@ -234,14 +234,14 @@ reflects executed work.
       message.
       *Result:* Posted in chat 2026-05-24. Five files (the four above
       plus this checklist update once 0.5.x are recorded). Subject:
-      "docs: ADR-0004 — generic rk4Step decoupled from rhsC".
+      "docs: Decision 0004 — generic rk4Step decoupled from rhsC".
 - [x] **0.5.4 [HUMAN]** Approve the `docs:` commit.
       *Result:* Approved 2026-05-24 via "you may commit" → second
       confirmation given the same message ("Confirming: about to run
       `git add` … Proceed?" was already in flight).
 - [x] **0.5.5 [AI]** Run `git commit` with `docs:` prefix. Report hash.
       *Result:* Committed 2026-05-24 as
-      `7160f01 docs: ADR-0004 + checklist amendments for off-checklist work`
+      `7160f01 docs: Decision 0004 + checklist amendments for off-checklist work`
       (5 files changed, 215 insertions, 10 deletions). `git status`
       clean after commit. Branch `main` now 1 commit ahead of
       `origin/main`; no push.
@@ -290,10 +290,10 @@ red until Slice 2.
       tolerance 1e-12; closed-form derivation in test comments. (B)
       forcing RHS returning dN/dt=−100 from N=0.1 with dt=1 — unclamped
       would be −99.9; asserts N ≥ 0 (clamp inside rk4Step). (C) tests
-      `advanceTick` (where the S reset lives per ADR-0004 + §4) with
+      `advanceTick` (where the S reset lives per Decision 0004 + §4) with
       β=10, c=0 driving dS/dt ≈ −0.901; asserts S === 0 (strict
       equality — not abs, not ε). Uses generic `rk4Step` signature from
-      ADR-0004. Fails at import — `./integrator` missing. See
+      Decision 0004. Fails at import — `./integrator` missing. See
       [Phase1AutomatedTests.md](Phase1AutomatedTests.md) 1.1.3.
 - [x] **1.1.4 [AI]** Run `npm test`, confirm Slice 1 tests fail at
       assertion or import.
@@ -334,6 +334,49 @@ red until Slice 2.
       (3 files changed, 251 insertions, 18 deletions). `git status`
       clean after commit. Branch `main` now 2 commits ahead of
       `origin/main`; no push.
+
+### 1.1B — Bridge: jargon cleanup (prose-only, runs before 1.2 implementation)
+
+Goal: replace the project-management jargon abbreviations in prose,
+headings, and code comments per user instruction 2026-05-24 ("project
+management jargon is bullshit; avoid three-letter abbreviations
+without explicit approval"). The two specific remappings agreed: the
+old A-D-R abbreviation → "Decision" / "Decisions", and the old P-B-T
+abbreviation → "Asserts". Directory `docs/design/adr/`, file
+`Phase1PBT.md`, and link href targets stay unchanged (option 1 of
+three offered). Lands as a `docs:` commit before any Slice 1.2 work
+begins. Saved as durable feedback in the
+[no-abbreviations memory note](../../../.claude/projects/-home-lentulus-projects-ColonyModels/memory/feedback_no_tlas.md).
+
+- [x] **1.1B.1 [AI]** Apply substitutions across 12 doc files in
+      `docs/design/` and `docs/design/adr/` plus 3 comment-only
+      occurrences in `client/src/sim/integrator.test.ts`. Patterns
+      handled: the bare three-letter forms → the long words above;
+      plural form → "Decisions"; numbered references (hyphen + four
+      digits) → "Decision NNNN" with a space; per-decision-file H1
+      headings rewritten correspondingly. Long-form "property-based
+      testing" stays (already plain English). Link href targets and
+      file paths unchanged. Grammar fix-up pass for "an Decision" →
+      "a Decision" and similar artifacts. Memory note keeps its
+      abbreviation references (it is *about* the rule).
+      *Result:* Done 2026-05-24 via two `sed` passes (substitution +
+      grammar). 15 files touched: 5 decision files + 9 design docs +
+      1 test-file comment block. `+102 / −69` net. Spot-checked: all
+      four per-decision H1 headings now read "# Decision NNNN: …";
+      `Phase1PBT.md` path preserved in HANDOVER + Phase1Design (the
+      file/path identifier was not renamed per option 1). Final grep
+      for old patterns came back clean except inside this very 1.1B
+      description (intentional — meta-text about the rule).
+- [ ] **1.1B.2 [AI]** Pre-commit triage; post proposed `docs:` commit
+      message.
+      *Result:* —
+- [x] **1.1B.3 [HUMAN]** Approve the `docs:` commit.
+      *Result:* Approved 2026-05-24 via "Add, commit, and PUSH". User
+      explicitly amended my "no push" echo to include a push to
+      `origin/main` — one-time authorization for this commit batch,
+      not a standing rule.
+- [ ] **1.1B.4 [AI]** Run `git commit` with `docs:` prefix. Report hash.
+      *Result:* —
 
 ### 1.2 Implementation
 

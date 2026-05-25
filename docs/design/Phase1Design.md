@@ -168,7 +168,7 @@ Two model invariants enforced *outside* the RHS, around the integrator:
 ## 5. Integrator
 
 Plain RK4, generic in the state type and the RHS function. ~20 lines, no
-library needed. See [ADR-0004](adr/0004-generic-rk4-integrator.md) for
+library needed. See [Decision 0004](adr/0004-generic-rk4-integrator.md) for
 why `rk4Step` takes the RHS as a parameter rather than calling `rhsC`
 directly.
 
@@ -446,11 +446,11 @@ Minimum useful set:
 
 | Concern               | Pick                  | Why                                                                    |
 | --------------------- | --------------------- | ---------------------------------------------------------------------- |
-| ODE integration       | **hand-rolled RK4**   | 20 lines. Adding an ODE library is more work than writing one. See [ADR-0002](adr/0002-hand-rolled-rk4-over-ode-library.md). |
+| ODE integration       | **hand-rolled RK4**   | 20 lines. Adding an ODE library is more work than writing one. See [Decision 0002](adr/0002-hand-rolled-rk4-over-ode-library.md). |
 | Client state          | **zustand**           | One-file store, no Provider needed. Right-sized for this app.          |
 | 2D plotting           | **recharts**          | React-native, declarative. `uPlot` is faster but uglier in React.      |
 | Server framework      | **express** (already) | No change.                                                             |
-| Persistence           | **better-sqlite3**    | Sync API, single-file DB, zero ops. SQLite handles JSON columns since 3.38. See [ADR-0001](adr/0001-sqlite-for-phase-1-persistence.md). |
+| Persistence           | **better-sqlite3**    | Sync API, single-file DB, zero ops. SQLite handles JSON columns since 3.38. See [Decision 0001](adr/0001-sqlite-for-phase-1-persistence.md). |
 | ID generation         | **nanoid**            | Smaller and faster than `uuid` for our purposes.                       |
 | Validation at boundary| **zod**               | Validate POSTed event payloads; share schemas client/server.           |
 | Tests (examples)      | **vitest**            | First-class TS + ESM, same config style as Vite.                       |
@@ -627,7 +627,7 @@ into "tests at the end" by attrition.
    *Property-based tests* (specs that hold for many generated inputs)
    apply to the math layer only: model, integrator, replay engine. See
    [Phase1PBT.md](Phase1PBT.md) for generators, properties, and run-count
-   policy. PBT tests live alongside example tests in the same `*.test.ts`
+   policy. Asserts tests live alongside example tests in the same `*.test.ts`
    files.
 7. **CI is not part of Phase 1.** "Automated" here means the local
    `vitest --watch` loop plus the discipline of running the full suite

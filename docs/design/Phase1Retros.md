@@ -19,7 +19,7 @@ Three prompts, in this order. Keep it brief — half a page total is fine.
    deliberately captures the wins so we don't lose them.
 3. **What would I change next time?** Concrete next-slice adjustments,
    not generic platitudes. "Allocate more time for X" is weak; "raise
-   PBT runs for the integrator from 100 to 500" is actionable.
+   Asserts runs for the integrator from 100 to 500" is actionable.
 
 Optional: **Action items.** Carry-overs into the next slice (or the
 [Risk Register](Phase1RiskRegister.md), or the ad-hoc sections of
@@ -91,7 +91,7 @@ the regression anchors won't turn green until Slices 1 & 2.
 
 | Item | Owner | Target slice / doc |
 | ---- | ----- | ------------------ |
-| ~~Decide rk4Step generic API (A) vs reduced rhsC (B); make the call before writing 1.1.3~~ — **resolved 2026-05-24, Option A.** See [ADR-0004](adr/0004-generic-rk4-integrator.md). Slice 0's `logistic.analytic.test.ts` (0.2.1) will be re-written against the new generic API in Slice 1.2.x when `integrator.ts` lands. | Project lead + Claude | ✅ Resolved |
+| ~~Decide rk4Step generic API (A) vs reduced rhsC (B); make the call before writing 1.1.3~~ — **resolved 2026-05-24, Option A.** See [Decision 0004](adr/0004-generic-rk4-integrator.md). Slice 0's `logistic.analytic.test.ts` (0.2.1) will be re-written against the new generic API in Slice 1.2.x when `integrator.ts` lands. | Project lead + Claude | ✅ Resolved |
 | Switch `shared/package.json` `main` → `exports` with `./src/index.ts` | Claude | Slice 1, step 1.2.1 |
 | Add TS path mapping for `@colonymodels/shared` in client + server tsconfigs | Claude | Slice 1, step 1.2.1 |
 | Revisit R-013 (`esbuild`/`vite` vuln) — try `npm audit fix --force` | Claude | Slice 6 polish |

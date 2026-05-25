@@ -5,10 +5,10 @@ AutomatedTests describes *example-based* tests (specific inputs → specific
 outputs), this document specifies *property-based* tests (specifications
 that should hold for many generated inputs).
 
-The math layer — model, integrator, replay engine — is where PBT earns
+The math layer — model, integrator, replay engine — is where Asserts earns
 its keep most clearly. The UI, HTTP, and storage layers are out of scope:
 their bugs are typically not the "subtle invariant violated in some
-parameter region" kind that PBT excels at finding.
+parameter region" kind that Asserts excels at finding.
 
 ## What is property-based testing
 
@@ -112,21 +112,21 @@ const arbEvents = fc.array(arbEvent, { maxLength: 20 })
 
 | ID | Property | Invariant |
 | -- | -------- | --------- |
-| P-R-1 | `replayTo(run, events, t) === replayTo(run, events, t)` deep-equal | Determinism (already in example tests; PBT broadens the input space). |
+| P-R-1 | `replayTo(run, events, t) === replayTo(run, events, t)` deep-equal | Determinism (already in example tests; Asserts broadens the input space). |
 | P-R-2 | `replayTo(run, [], t)` ignores events: result depends only on `(run, t)` | Empty event list = baseline trajectory. |
 | P-R-3 | `paramsAt(run, events, t)` returns a value from `{initial} ∪ {events' values up to t}` | No invented parameter values. |
 | P-R-4 | `replayTo(run, events, t1)` followed by `replayTo(run, events, t2)` (`t2 > t1`) — the latter's snapshot at `t1` matches the former's last snapshot | Replay extension is consistent. |
 | P-R-5 | Adding a `param-set` event after `t` does not change `replayTo(run, events, t)` | Causality — future events can't affect past states. |
 | P-R-6 | For any run + events: all snapshots have `N >= 0` and `S >= 0` | Clamps survive the replay-driver layer. |
 
-## When to run PBT
+## When to run Asserts
 
 - **Locally during development.** `vitest --watch` runs everything;
   fast-check's default 100 runs per property keeps the loop tight.
 - **At Slice 0 red review.** The properties for the integrator and
   replay engine are written *first*, alongside the example tests, and
   fail at import like the rest of the Slice 0 anchors.
-- **Anchor PBT properties** (the ones most likely to catch regressions —
+- **Anchor Asserts properties** (the ones most likely to catch regressions —
   P-I-3, P-R-1, P-R-5) get their run counts raised to 1000 at the end of
   Slice 5, once the suite is stable. Marked in the test file with
   `numRuns: 1000`.

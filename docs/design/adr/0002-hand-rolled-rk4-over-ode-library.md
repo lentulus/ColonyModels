@@ -1,4 +1,4 @@
-# ADR-0002: Hand-rolled RK4 over an ODE library
+# Decision 0002: Hand-rolled RK4 over an ODE library
 
 - **Status:** Proposed
 - **Date:** 2026-05-23
@@ -70,6 +70,6 @@ into debt" rule (§7.2.1 of his book).
 
 - Property-based tests (see [Phase1PBT.md](../Phase1PBT.md)) will cover
   the integrator across a wider parameter range than the example tests
-  reach. This decision is more defensible *with* PBT than without.
-- A future ADR may revisit this if/when we need adaptive stepping or
+  reach. This decision is more defensible *with* Asserts than without.
+- A future Decision may revisit this if/when we need adaptive stepping or
   symplectic integrators.

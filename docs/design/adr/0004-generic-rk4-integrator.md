@@ -1,16 +1,16 @@
-# ADR-0004: Generic rk4Step decoupled from rhsC
+# Decision 0004: Generic rk4Step decoupled from rhsC
 
 - **Status:** Proposed
 - **Date:** 2026-05-24
 - **Decision-makers:** project lead; drafted by Claude
-- **Related:** [ADR-0002](0002-hand-rolled-rk4-over-ode-library.md) (hand-rolled RK4),
+- **Related:** [Decision 0002](0002-hand-rolled-rk4-over-ode-library.md) (hand-rolled RK4),
   Phase1Design.md §5 (integrator), §6.7 (extension seams),
   [Phase1Retros.md](../Phase1Retros.md) Slice 0 action item #1,
   [Phase1AutomatedTests.md](../Phase1AutomatedTests.md) 0.2.1, 1.1.3
 
 ## Context
 
-[ADR-0002](0002-hand-rolled-rk4-over-ode-library.md) settled *whether* to
+[Decision 0002](0002-hand-rolled-rk4-over-ode-library.md) settled *whether* to
 hand-roll RK4 (yes). It left open *how to shape the signature*. The
 initial Phase1Design.md §5 wrote it bound to the project's RHS:
 
@@ -73,7 +73,7 @@ function rk4Step<S>(s: S, dt: number, rhs: (s: S) => S): S {
 
 The $N \ge 0$ clamp stays inside `rk4Step` (post-step, via
 `clampNonNeg`); the $S \ge 0$ manual reset stays outside, around the
-caller of `rk4Step` (per [ADR-0002](0002-hand-rolled-rk4-over-ode-library.md)
+caller of `rk4Step` (per [Decision 0002](0002-hand-rolled-rk4-over-ode-library.md)
 and Phase1Design.md §5). `advanceTick` becomes the place where `rhsC` is
 bound:
 
@@ -128,8 +128,8 @@ their own.
 
 **Neutral / Followups.**
 
-- Does not supersede [ADR-0002](0002-hand-rolled-rk4-over-ode-library.md):
-  the choice to hand-roll RK4 still holds; this ADR only refines the
+- Does not supersede [Decision 0002](0002-hand-rolled-rk4-over-ode-library.md):
+  the choice to hand-roll RK4 still holds; this Decision only refines the
   signature.
 - The Phase1Design.md §5 code block is the only design-doc edit needed.
   §10 (file layout) is unchanged. §6 (replay) does not depend on the

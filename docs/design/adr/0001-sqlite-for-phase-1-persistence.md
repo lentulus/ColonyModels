@@ -1,4 +1,4 @@
-# ADR-0001: Use better-sqlite3 for Phase 1 persistence
+# Decision 0001: Use better-sqlite3 for Phase 1 persistence
 
 - **Status:** Proposed
 - **Date:** 2026-05-23
@@ -68,7 +68,7 @@ The database file path is configurable via env var (default:
 
 **Neutral / followups.**
 
-- A future ADR will be required if/when we move to a server-side store
+- A future Decision will be required if/when we move to a server-side store
   shared with MeridianWorlds.
 - Versioned schema migrations are out of scope for Phase 1 (drop-and-
   recreate is acceptable); they need a framework (e.g. `umzug` or

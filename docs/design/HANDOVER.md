@@ -42,14 +42,14 @@ Two options:
   `rk4Step<S>(s: S, dt: number, rhs: (s: S) => S): S` (or similar). 1.1.3
   works as specified; 0.2.1 needs to be re-written to pass `rhsLogistic`
   as a function. Cleaner separation between integrator and model. **An
-  ADR-0004 candidate** if accepted.
+  Decision 0004 candidate** if accepted.
 - **Option B: Bound to rhsC.** Keep §5 as written. Rewrite 1.1.3 to
   substitute parameters that turn `rhsC` into a known form, the way 0.2.1
   did. Avoids generalising; harder to unit-test the integrator
   algorithm in isolation.
 
 **Recommended approach:** post the trade-off summary to the user, ask
-which option, file ADR-0004 if option A is chosen, then proceed to
+which option, file Decision 0004 if option A is chosen, then proceed to
 Slice 1.1.1. The retro's action item table flags this; see Phase1Retros.md
 Slice 0 "Action items".
 
@@ -103,7 +103,7 @@ this project runs on **port 8001**.
 10. [Phase1Retros.md](Phase1Retros.md) — one section per slice, filled in
     at the slice's green review.
 11. [adr/README.md](adr/README.md) — Architecture Decision Records.
-    Three initial ADRs (SQLite, hand-rolled RK4, client-owned sim) plus
+    Three initial Decisions (SQLite, hand-rolled RK4, client-owned sim) plus
     a backlog of further decisions worth capturing.
 12. [../../README.md](../../README.md) — how to run the existing scaffold.
 
@@ -227,11 +227,11 @@ $S \ge 0$ clamp is broken — fix before moving on.
 
 **Installed (as of Slice 0, 2026-05-24):**
 - `vitest@^4.1.7` — in `client`, `server`, `shared`
-- `fast-check` — in `client` only (PBT, see [Phase1PBT.md](Phase1PBT.md))
+- `fast-check` — in `client` only (Asserts, see [Phase1PBT.md](Phase1PBT.md))
 - `supertest` + `@types/supertest` — in `server` only
 
 **Not yet installed** (land in their respective slices):
-- `better-sqlite3` (server persistence, Slice 3) — see [ADR-0001](adr/0001-sqlite-for-phase-1-persistence.md)
+- `better-sqlite3` (server persistence, Slice 3) — see [Decision 0001](adr/0001-sqlite-for-phase-1-persistence.md)
 - `zod` (boundary validation, Slice 3)
 - `nanoid` (RunId, Slice 1 or 3)
 - `recharts` (2D plotting, Slice 1)
@@ -265,7 +265,7 @@ $S \ge 0$ clamp is broken — fix before moving on.
 - **Risk register check at every green review.** Walk
   [Phase1RiskRegister.md](Phase1RiskRegister.md), add new risks, update
   statuses on existing ones.
-- **ADRs for architecturally significant choices.** When a non-trivial
+- **Decisions for architecturally significant choices.** When a non-trivial
   design decision is made (or reversed), file a new
   [adr/NNNN-…md](adr/README.md) rather than burying it in a design-doc edit.
 
@@ -301,7 +301,7 @@ If the session is fresh and the user has not given specific direction:
 3. Read **"Pre-Slice-1 decision required"** above. The rk4Step API
    call needs to be made before Slice 1.1.1; surface it to the user
    before any test-writing.
-4. Once the API call is made (and ADR-0004 filed if Option A is
+4. Once the API call is made (and Decision 0004 filed if Option A is
    chosen), open [Phase1Checklist.md](Phase1Checklist.md) and start at
    step **1.1.1 [AI]** (write `shared/src/types.test.ts` or skip with
    a note per §11.2 rule 1 exemption).
@@ -315,8 +315,8 @@ If the session is fresh and the user has not given specific direction:
 
 **Slice 1 expected commit cadence** (subject to double-approval per
 [Phase1Design.md §11.1](Phase1Design.md)):
-- After ADR-0004 lands (if Option A): a separate small commit
-  containing the ADR and any Phase1Design.md §5 edits, prefix `docs:`.
+- After Decision 0004 lands (if Option A): a separate small commit
+  containing the Decision and any Phase1Design.md §5 edits, prefix `docs:`.
 - One `red:` commit at end of Slice 1.1.x (tests written, all red for
   the right reason — confirmed at 1.1.6 red review).
 - One `green:` commit at end of Slice 1.2.x (implementation lands, the

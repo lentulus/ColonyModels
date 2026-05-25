@@ -24,7 +24,7 @@ when every box is ticked (or every gap is explicitly waived in writing).
       `todo` tests, *or* every skip is documented in
       [Phase1AutomatedTests.md](Phase1AutomatedTests.md) with a reason
       and a target slice for un-skipping.
-- [ ] **PBT properties (where applicable) green.** Property-based tests
+- [ ] **Asserts properties (where applicable) green.** Property-based tests
       from [Phase1PBT.md](Phase1PBT.md) covering code touched in this
       slice all pass at the configured run count.
 
@@ -41,7 +41,7 @@ when every box is ticked (or every gap is explicitly waived in writing).
       pointer to a commit hash, test output, or chat exchange.
 - [ ] **Glossary up to date.** Any new vocabulary introduced this slice
       is added to [Phase1Design.md](Phase1Design.md) §18.
-- [ ] **ADRs filed for new architectural choices.** Any decision worth
+- [ ] **Decisions filed for new architectural choices.** Any decision worth
       capturing per [adr/README.md](adr/README.md) has its own
       `NNNN-…md` file, status Proposed or Accepted.
 - [ ] **README updated** if the slice changed user-visible behaviour
@@ -84,7 +84,7 @@ If a DoD item cannot be satisfied this slice, document the waiver here
 | 0 | "All slice tests green" | Slice 0 is intentionally red-only — it writes the regression anchors that the downstream slices then turn green. Per Phase1Design.md §12: "All red on `npm test`. Commit message: `red:`." | Slice 1 (logistic anchor) + Slice 2 (Turchin anchor) + Slice 3 (HTTP roundtrip) |
 | 0 | "No previously-green test now red" | No tests existed before Slice 0; vacuously true. | n/a |
 | 0 | "Anchors still green" | Same as above — anchors are red at end of Slice 0 by design. | Slices 1-3 |
-| 0 | "PBT properties green" | PBT properties don't land until Slice 1 (model + integrator) and Slice 2 (replay). | Slices 1-2 |
+| 0 | "Asserts properties green" | Asserts properties don't land until Slice 1 (model + integrator) and Slice 2 (replay). | Slices 1-2 |
 
 A waiver requires explicit `[HUMAN]` approval (subject to the double-
 approval gate, like any other gated decision).

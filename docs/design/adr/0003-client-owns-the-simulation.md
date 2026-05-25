@@ -1,4 +1,4 @@
-# ADR-0003: Client owns the simulation; server is durable storage only
+# Decision 0003: Client owns the simulation; server is durable storage only
 
 - **Status:** Proposed
 - **Date:** 2026-05-23
@@ -76,6 +76,6 @@ self-healing on the next replay.
 
 - The MeridianWorlds integration plan (Phase1Design.md §14) assumes
   ColonyModels exports its sim as a content stream. If that ever moves
-  the sim server-side, this ADR will be superseded.
-- A future ADR may need to cover the snapshot-cache reuse strategy more
+  the sim server-side, this Decision will be superseded.
+- A future Decision may need to cover the snapshot-cache reuse strategy more
   formally if/when it grows beyond the §6.5 sketch.

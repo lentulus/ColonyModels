@@ -34,7 +34,7 @@ captures the *thinking*.
 - **Phase1RiskRegister.md** — risk *log*. Reviewed at each green review.
 - **Phase1Retros.md** — slice *reflections*. Written once per slice, never edited.
 - **adr/NNNN-*.md** — architectural *decisions*. Immutable after Accepted;
-  superseded by a new ADR if reversed.
+  superseded by a new Decision if reversed.
 - **HANDOVER.md** — *cross-session continuity*. Updated when the working
   agreement or current state changes materially.
 
@@ -43,4 +43,4 @@ captures the *thinking*.
 These docs evolve. When you change `Phase1Design.md`, mention the change
 in the next slice's retro entry so the *why* is captured alongside the
 *what*. When a project-shaping decision lands (in either direction), file
-a new ADR rather than burying it in a design-doc edit.
+a new Decision rather than burying it in a design-doc edit.
