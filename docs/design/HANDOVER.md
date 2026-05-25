@@ -1,295 +1,209 @@
 # Phase 1 Handover
 
-Written 2026-05-23, last refresh 2026-05-25 (mid-Slice-1.3, after 18
-fix-iterations on the Slice 1 visual-review chart). If the Claude window
-closes mid-task, this is the file the next assistant should read first.
-Pointer document — it does not restate the design; it tells you what's
-been decided, where we are, and what to do next.
+Last refreshed 2026-05-25 at the end of Slice 1. Slice 1 just shipped
+clean (`4d497ef green: Slice 1`); the next session starts **Slice 2
+(replay engine)**.
+
+This document is the cross-session continuity index — read it first if
+you're picking up the project from a fresh Claude window. It points to
+the authoritative docs rather than restating them.
+
+---
 
 ## TL;DR for a fresh session
 
-**Slice 0, Slice 1.1, Slice 1.1B (jargon cleanup), and Slice 1.2 are
-complete.** All eight expected-green tests pass; the two Slice-0 anchor
-reds are red for the right reason (Slice 2 and Slice 3 modules still
-missing). The shared types workspace is wired up; `rhsC` and `rk4Step` /
-`advanceTick` are implemented; the chart UI exists.
+**Slices 0 and 1 are complete and green.** The math layer (`rhsC`,
+`rk4Step`, `advanceTick`) is implemented and audited against Turchin's
+*Historical Dynamics* Ch. 7 via a citation-anchored derivation in
+[Phase1MathDerivations.md](Phase1MathDerivations.md). Asserts properties
+(13 of them, P-M-1..7 + P-I-1..6) lock the math layer at 100
+runs/property.
 
-**Slice 1.3 is in trouble.** The 1.3.3 visual review descended into a
-17-step defect-fix iteration on [client/src/App.tsx](../../client/src/App.tsx)
-chasing recharts-rendering issues (axis ticks, brush behavior, Y-axis
-stability, scale-mode toggle). 15 distinct defects logged, one still
-open. The project lead has signalled drift and is starting a fresh
-session. **Recommendation for the fresh session:** pull back to a
-simpler chart in App.tsx, defer the rich UI controls (toggles, brush,
-indexed mode, scale switcher) to Slice 5 where they actually belong,
-then close out 1.3 cleanly.
+**Next action: Slice 2 — replay engine.** First checklist step is
+**2.1.1 [AI]** (write `client/src/sim/replay.test.ts`). But see the
+critical carry-over below — there's an amendment to file *before*
+2.1.1 fires.
 
-## Critical: D-1.3.3-15 still open
+### Critical pre-2.1.1 carry-over (R-014)
 
-The Decades-mode toggle button visibly toggles `aria-pressed`, but
-**the user reports the chart looks identical** — no visible change when
-toggling Years ↔ Decades. Two interpretations to investigate fresh:
+The Slice 0 anchor
+[client/src/sim/turchin.cycle.test.ts](../../client/src/sim/turchin.cycle.test.ts)
+asserts the first N-peak is in `[80, 220]` yr. With §17 now at Turchin
+verbatim (s₀=10, N₀=0.5, aligned 2026-05-25 at Slice 1.3.4b.fix-1), the
+actual peak is at t≈227 yr — 7 yr above the bound. **The anchor WILL
+fail at Slice 2.2.3 when `replayTo` lands.**
 
-- **(a)** Real bug: the chart re-renders but the X-axis labels never
-  update, despite `t_display` being recomputed and `xTicks` being
-  swapped. Most plausible cause is recharts caching a scale or the
-  `dataKey` not re-binding when the data array reference changes.
-- **(b)** UX misunderstanding: labels DO change ("200" → "20") but
-  the *curve* looks identical (which is correct — only labels and tick
-  values should change). If this is the case, the toggle UI doesn't
-  communicate visibly enough that the change is purely cosmetic.
+**Required action before 2.1.1:** per checklist-is-the-contract, file a
+new step (probably numbered 2.1.0) to widen the bound from `[80, 220]`
+to `[180, 280]`, then execute under double-approval. Full analysis is
+in [Phase1MathDerivations.md §5](Phase1MathDerivations.md).
 
-Verify by opening the dev server, clicking Decades on, and reading the
-X-axis tick labels. If they read in years (e.g. "200"), interpretation
-(a) is correct. If they read in decades ("20"), interpretation (b).
+---
 
-## What's complete
-
-| Slice | What landed | Tests |
-|---|---|---|
-| 0 | Vitest harness, three red anchor tests, fast-check installed | 3 red anchors (intended) |
-| 0 → 1 bridge | [Decision 0004](adr/0004-generic-rk4-integrator.md) for generic `rk4Step` API | docs only |
-| 1.1 | `model.test.ts`, `integrator.test.ts` (red) | 2 new red test files |
-| 1.1B | Jargon cleanup (ADR → Decisions, PBT → Asserts) across 15 doc/comment files | docs only |
-| 1.2 | `shared/` types, `rhsC`, `rk4Step<S>` + `advanceTick`, App.tsx as recharts chart, recharts installed | **8 green** + 3 expected reds |
-
-[Phase1Checklist.md](Phase1Checklist.md) has every step ticked through
-**1.1B.5** (push of `8f968e6`) and **1.2.5** (green `npm test`); the new
-**1.2.3.b** step (added retroactively per checklist-is-the-contract
-rule) rewrote the Slice 0 logistic anchor for the Decision 0004 API.
-
-## What's in progress (Slice 1.3 — STUCK)
-
-**1.3.1** posted; **1.3.2** marked done by user ("mark 1.3.2 complete").
-**1.3.3** is unticked and has accumulated 19 nested fix sub-steps
-(1.3.3.fix-1 through 1.3.3.fix-19) chasing recharts UI defects. **Fix-19
-is THIS handover** — added retroactively when the user opted to start
-fresh.
-
-The work since the last commit (`899ef24 Jargon clense`) is
-**unstaged** in the working tree:
-
-- `client/src/sim/model.ts`, `integrator.ts` — NEW (Slice 1.2.2, 1.2.3.a)
-- `client/src/sim/logistic.analytic.test.ts` — MODIFIED (1.2.3.b rewrite)
-- `client/src/App.tsx` — MODIFIED extensively (Slice 1.2.4 + 19 fix
-  iterations through Slice 1.3.3)
-- `client/tsconfig.json`, `server/tsconfig.json` — `paths` + `baseUrl`
-- `shared/package.json` — `main`/`types` → conditional `exports`
-- `shared/src/index.ts` — placeholder replaced with types per §3
-- `client/package.json` + `package-lock.json` — `recharts` added
-- `docs/design/Phase1Checklist.md` — heavy edits: 1.2.x complete,
-  1.3.3.fix-N chain logged
-
-**Tests are green; the open defect is purely visual.** A fresh session
-can safely commit the uncommitted work as `green: Slice 1.2 complete`
-(or similar) before touching anything new. See "Recommended commit
-strategy" below.
-
-## Defect catalog (Slice 1.3.3 visual-review iteration)
-
-All defects below were surfaced during the 1.3.3 visual review. The
-checklist has the full Result-line detail on each fix attempt; this
-catalog is the index.
-
-### Fixed
-
-| ID | Defect | Fixed by | Notes |
-|---|---|---|---|
-| D-1.3.3-1 | Y-axis showed raw scaled values, not people-count per §8.3 | 1.3.3.fix-1 | `peoplePerUnit=1000` multiplied; custom tooltip shows both forms |
-| D-1.3.3-2 | Bottom area smooshed (axis label overlapped legend) | 1.3.3.fix-2 | Label `position: "bottom"`; margin 60; Legend moved to top |
-| D-1.3.3-3 | Grey caption under title illegible | 1.3.3.fix-3 | Deleted |
-| D-1.3.3-4 | Rotated Y-axis label overlapped `<h2>` title | 1.3.3.fix-5 | Y-axis label dropped (legend conveys units) |
-| D-1.3.3-5 | Y-axis tick numbers shown in full (`80000`) | 1.3.3.fix-6 | `compactNumber()` → `80k`, `1.2M` |
-| D-1.3.3-6 | S scale dominated, hiding N curve shape | 1.3.3.fix-7 | Per-line toggle buttons + clickable legend |
-| D-1.3.3-7 | Needed "Indexed" mode (value × t0 multiplier) | 1.3.3.fix-8 | Indexed toggle button; initial S(0)=0 handled |
-| D-1.3.3-8 | Indexed S broken when S(0)=0 (annoying) | 1.3.3.fix-10 | Per-series first-nonzero reference: `indexed_X(t) = X(t)/X(t*_X)` |
-| D-1.3.3-9 | Decades mode showed decimal tick labels (`17.5 dec`) at narrow brush | 1.3.3.fix-15 | `t_display` field + explicit integer `xTicks` |
-| D-1.3.3-10 | Y axis "went mental" on brush pan | 1.3.3.fix-15 | `yDomain` locked over full-data extent of visible series |
-| D-1.3.3-11 | Years mode tick spacing too sparse (only 0, 200, 400…) | 1.3.3.fix-15, refined in fix-17 | Now every 5 years, `interval="preserveStartEnd"` thins |
-| D-1.3.3-13 | Need "multiples of 5" tick density readable at narrow zoom | 1.3.3.fix-17 | `xTicks` step 50→5 in years mode |
-| D-1.3.3-14 | Brush culled data instead of zooming X axis | 1.3.3.fix-17 | Removed explicit XAxis `domain` (was blocking brush zoom) |
-
-### Open
-
-| ID | Defect | Status |
-|---|---|---|
-| **D-1.3.3-12** | Curve peak appeared at different X positions in years vs decades mode | Believed fixed by fix-17 (root-cause shared with D-14), **but D-15 below suggests the toggle may not be working at all — re-verify** |
-| **D-1.3.3-15** | Decades toggle produces no visible change | **NEW, OPEN.** See "Critical" section above for the two interpretations. |
-
-### Deferred (scope creep into Slice 1)
-
-| ID | Item | Notes |
-|---|---|---|
-| F-1.3.3-1 / F-1.3.3-2 | Time-scale toggle + Brush were originally Slice 5 controls scope, landing early in Slice 1 for math-review usability. The chart is now overweight for Slice 1; consider reverting and deferring. | See "Recommendation" |
-
-## Recommended next-session strategy
-
-The Slice 1.3.3 chart UI has accumulated ~280 LOC of toggle/brush/indexing
-machinery that **isn't asked for by Phase1Design §8.3** (which spec'd
-"one `<LineChart>` with two `<Line>` series … `<ReferenceLine>` cursor
-for scrubbing"). The current UI is Slice-5-feature-creep that landed
-prematurely to make the math review usable.
-
-**Suggested play for the fresh session:**
-
-1. **Revert App.tsx to a simple version.** Strip the toggle buttons,
-   the indexed mode, the time-scale switcher, and the brush. Keep:
-   one `<LineChart>` with N and S lines (in people-count via
-   `peoplePerUnit`), custom tooltip showing both scaled and people,
-   compact Y-axis tick formatter, X-axis labelled in years, 200-year
-   horizon (or 500 if the user wants more for math review). That's
-   what Slice 1.2.4 was supposed to produce.
-2. **Move F-1.3.3-1 (time-scale toggle) and F-1.3.3-2 (brush) into
-   Slice 5's `Controls.tsx` scope explicitly.** Add a `Carry-overs /
-   Deferred` entry in [Phase1Checklist.md](Phase1Checklist.md).
-3. **Close 1.3.3 with the simpler chart.** The user can do the math-
-   correctness review at 1.3.4 on a static 200-yr (or 500-yr) plot;
-   that's all the design called for.
-4. **Continue from 1.3.4** (math review), then through 1.3 to green
-   commit.
-
-If the user prefers to keep the rich UI and just debug D-15, the
-investigation path is in the "Critical" section above — most likely
-needs to inspect rendered output in the DOM to see whether axis labels
-update on toggle, then either fix the recharts wiring or add visible UX
-to make the toggle's effect clear.
-
-## Recommended commit strategy (for the fresh session, before any new edits)
-
-The working tree carries Slice 1.2 implementation AND the Slice 1.3.3
-UI iteration. **All tests pass.** Two options:
-
-- **(a) Commit as one `green: Slice 1.2` and one `wip: 1.3.3 UI` pair.**
-  Cleanest history: Slice 1.2 work (model, integrator, shared types,
-  tsconfig plumbing, logistic anchor rewrite, simple chart) lands as
-  `green: Slice 1.2`. The Slice 1.3.3 UI accretion (toggles, brush,
-  indexed, time-scale, 1000-yr horizon, 17 fix steps) lands as a
-  separate `wip:` or `chore:` commit so it can be cleanly reverted if
-  the fresh session takes the "pull back to simple chart" recommendation.
-- **(b) Commit the lot as one `wip: Slice 1.2 + 1.3.3 iteration` and
-  leave the cleanup decision for the fresh session.** Simpler now;
-  messier history.
-
-The user's commit cadence so far has been pragmatic (`Jargon clense`,
-`slice 1.1`, etc. — short messages, project-lead authored). Either
-option is fine. **Do not push without explicit ask.**
-
-If reverting App.tsx to a simpler form, useful reference points:
-- The post-fix-3 version (N/S lines, no toggles, no brush, no time-scale)
-  is roughly what §8.3 calls for. Reachable from git history of the
-  unstaged App.tsx — between fix-3 and fix-5 there is no committed
-  snapshot, so reconstruct from §8.3 directly.
-
-## Working-style rules (non-negotiable, durable)
-
-Saved in session memory as:
-- `feedback_double_approval` — wait for two explicit confirmations at
-  every `[HUMAN]` gate (user echoes, Claude confirms back, user
-  re-confirms).
-- `feedback_checklist_authoritative` — if it isn't a numbered step in
-  [Phase1Checklist.md](Phase1Checklist.md), it doesn't get done. Amend
-  the checklist before executing.
-- `feedback_test_first` — failing tests committed before
-  implementation; `red:` / `green:` commit-message prefixes. UI excluded.
-- `feedback_implementation_model` — Claude implements, user reviews per
-  the structured slice cadence. **Never push commits unprompted.**
-- `feedback_no_tlas` — avoid three-letter abbreviations / PM jargon in
-  prose. Math/protocol abbreviations are fine. ADR → Decisions,
-  PBT → Asserts.
-
-All of these will load automatically with the fresh session via the
-MEMORY.md index.
-
-## What to read, in order (for a fresh session)
-
-1. This file (you're reading it).
-2. [Phase1Checklist.md](Phase1Checklist.md) — the running record.
-   Search for the most recent ticked box; the next unchecked is your
-   target. Be wary of the 1.3.3.fix-N chain — that's the iteration
-   trap; see "Recommended strategy" above.
-3. [Phase1Design.md §0, §11, §12](Phase1Design.md) — decisions,
-   review cadence, slice sequence.
-4. [adr/0004-generic-rk4-integrator.md](adr/0004-generic-rk4-integrator.md)
-   — the one architectural decision from this cycle.
-5. [Phase1Retros.md](Phase1Retros.md) Slice 0 entry — context for the
-   process rules.
-
-Skim only if you have time:
-6. [Phase1AutomatedTests.md](Phase1AutomatedTests.md) — test specs;
-   useful when reviewing what 1.1.2 / 1.1.3 / 1.2.5 should achieve.
-7. [Phase1RiskRegister.md](Phase1RiskRegister.md) — R-013 still open
-   (esbuild vuln, deferred to Slice 6).
-8. [Phase1DoD.md](Phase1DoD.md) — Done definition; Slice 1 row will
-   need filling at 1.3.4a tracking sweep.
-
-## Repo state at handover write time (2026-05-25)
+## Current state
 
 ```
-HEAD: 899ef24 Jargon clense                                ← user
-      8f968e6 docs: jargon cleanup — Decisions/Asserts substitutions  ← me
-      94af448 slice 1.1                                    ← user
-      996b079 red: Slice 1 anchor tests — model + integrator
-      7160f01 docs: ADR-0004 + checklist amendments for off-checklist work
-      2828efe Slice 0 complete                             ← user
-      e9cbad9 red: Slice 0 anchor tests
-      …
+HEAD: 4d497ef green: Slice 1 — model + integrator + math-correctness anchors
+      b5512f0 Walked bak UI changes to another phase
+      4f08f7e wip: Slice 1.2 complete + Slice 1.3.3 UI iteration (D-15 open)
+      ...
 
-Branch: main, up to date with origin/main.
-
-Unstaged: 9 modified + 2 new (Slice 1.2 + 1.3.3 work).
-Untracked: client/src/sim/integrator.ts, client/src/sim/model.ts
-Total: +1330 / −62 across 11 files.
+Branch: main, 1 ahead of origin/main (Slice 1 commit unpushed).
+Working tree: clean.
 ```
 
-**`npm test`:** client 3-of-4 pass (8 tests green); server 1 fail
-(expected, missing `../app` until Slice 3); shared "no test files"
-(intentional skip per 1.1.1). The remaining red is
-`turchin.cycle.test.ts` (missing `./replay`, Slice 2 anchor).
+**Verifications (all should still pass at session start):**
+- `npm test`: client 28/28 green (15 example + 13 properties); server
+  `runs.roundtrip.test.ts` red at import (`Cannot find module '../app.js'`
+  — Slice 3 anchor, expected); shared no test files (1.1.1 documented
+  skip).
+- `npm run typecheck`: clean across all 3 workspaces.
+- `npm run build`: clean across all 3 workspaces.
 
-**`npm install`:** `recharts` is in `client/package.json`. Other deps
-unchanged.
+If any of these don't match: somebody touched the tree between sessions
+— **ask the user before proceeding.**
+
+---
+
+## What landed in Slice 1
+
+| Slice block | What landed |
+|---|---|
+| 1.1 | Red anchor tests for model + integrator (example-based) |
+| 1.1B | Jargon cleanup (ADR→Decisions, PBT→Asserts) |
+| 1.2 | Shared types, rhsC (Turchin Eq 7.4), rk4Step + advanceTick, App.tsx chart |
+| 1.3.3 | Visual review — fix-1..21 cascade closed by simplification |
+| 1.3.4 / 4b / 4c | Math-correctness verification (derivation + citation audit) |
+| 1.3.4a | Tracking sweep (RiskRegister R-014/R-015, Retros, DoD) |
+| 1.3.4d | R-015 mitigation — tsconfig exclude for test files on both workspaces |
+| 1.3.4b.fix-1..5 | §17 aligned to Turchin Fig 7.1 verbatim |
+| 1.3.4b.fix-6 | Phase1AutomatedTests.md backfill for 1.3.4b |
+| 1.3.4e | Asserts properties P-M-1..7 + P-I-1..6 (13 total) |
+| 1.3.5 | DoD sign-off by Lentulus — 12/13 green, 1 explicit waiver |
+| 1.3.6/7/8 | Pre-commit triage → approve → commit `4d497ef` |
+
+Major shifts vs the prior handover (which was written mid-1.3.3 panic
+about D-15): the rich-UI accretion was reverted at fix-20 (App.tsx
+back to a simple chart per §8.3 intent); the time-scale toggle (F-1.3.3-1)
+and brush (F-1.3.3-2) are deferred to Slice 5's `Controls.tsx`; D-1.3.3-15
+dissolved when the toggle was removed.
+
+---
+
+## What to read, in order
+
+1. **This file** (you're reading it).
+2. [Phase1Checklist.md](Phase1Checklist.md) — find the most recent
+   ticked box (1.3.8); the next unchecked is the Slice 2 block.
+3. [Phase1MathDerivations.md §5](Phase1MathDerivations.md) — R-014
+   carry-over analysis.
+4. [Phase1Design.md §6](Phase1Design.md) — replay engine pseudo-code
+   (paramsAt, replayTo, branching, mid-tick events).
+5. [Phase1PBT.md §"Properties — replay"](Phase1PBT.md) — the P-R-*
+   properties Slice 2 will need (analogous to Slice 1's P-M-*/P-I-*).
+
+Skim only if time permits:
+6. [Phase1AutomatedTests.md §2.1.1](Phase1AutomatedTests.md) — replay
+   engine test spec.
+7. [Phase1Retros.md Slice 1 entry](Phase1Retros.md) — surprises,
+   what-worked, what-to-change, six surviving action items.
+8. [Phase1RiskRegister.md](Phase1RiskRegister.md) — R-001..R-015.
+
+---
+
+## Behavioral rules (loaded automatically via MEMORY.md)
+
+All durable feedback memories remain active. Most consequential in
+practice:
+
+- **`feedback_double_approval`** — every `[HUMAN]` gate gets two
+  explicit approvals with an echo in between. Apply without exception.
+  **Confirmed working** during Slice 1: caught a cat-induced typo'd
+  approval (`aaaaaaaaaaaaszapprove commit`) during the green commit
+  gate; user re-confirmed clear ("Sorry, cat. Which is indeed why we
+  have the rule").
+- **`feedback_checklist_authoritative`** — if a task isn't a numbered
+  step, it doesn't get done; amend the checklist first, then execute.
+  Slice 1 made heavy use of this (1.3.4b/c/a/d/e, 1.3.4b.fix-1..6, all
+  added retroactively).
+- **`feedback_test_first`** — `red:` then `green:` commit prefixes;
+  failing tests before implementation.
+- **`feedback_implementation_model`** — never push without explicit ask.
+- **`feedback_explain_errors_in_output`** — annotate every error / FAIL
+  in tool output (added 2026-05-25 after the user noted "I forget
+  things"). Don't leave raw error text uncontextualized.
+- **`feedback_no_tlas`** — avoid PM-jargon abbreviations.
+- **`feedback_positive_deferral_reasons`** — positive engineering
+  reason for defers, not "wasn't in the plan."
+
+---
 
 ## Decisions already made (do not re-litigate)
 
-- **Model:** Option C (basic demographic-fiscal) per Eq 7.4. Forward-
-  compat to Option D via `ModelKind` discriminator.
-- **Integrator:** generic `rk4Step<S extends StateC>(s, dt, rhs): S` +
-  StateC-typed `advanceTick(s, p, tickYears, dtIntegYears)`.
-  N≥0 clamp inside `rk4Step` (via `clampNonNeg`), S≥0 reset between
-  `rk4Step` sub-steps inside `advanceTick`. See
+- **Model:** Option C (basic demographic-fiscal) — Turchin Eq 7.4.
+- **Integrator:** Generic `rk4Step<S>(s, dt, rhs)`; `advanceTick` binds
+  `rhsC` via closure. `N ≥ 0` clamp inside `rk4Step`; `S ≥ 0` manual
+  reset between `rk4Step` calls in `advanceTick`. See
   [Decision 0004](adr/0004-generic-rk4-integrator.md).
-- **Shared package:** `exports: { ".": { "types": …, "default": … } }`
-  pointing at `./src/index.ts`. Both client (Bundler) and server
-  (NodeNext) resolve via paths mapping in tsconfigs.
-- **Architecture, time, units, founding date, persistence, libraries**
-  unchanged from earlier handover — see Phase1Design §0, §16, §17.
+- **§17 BLANK_RUN:** Turchin Fig 7.1 / §7.2.1 verbatim —
+  `r=0.02, β=0.25, c=3, s0=10, N0=0.5, S0=0`. Aligned 2026-05-25.
+- **Asserts:** properties live in the same file as example tests under
+  a separate `describe("properties", ...)` block per
+  [Phase1PBT.md §"Conventions"](Phase1PBT.md). Use `fc.double` (not
+  `fc.float`) for arbitrary-range doubles — fast-check 4.x restricts
+  `fc.float` to 32-bit IEEE-754. Phase1PBT.md tables still show the
+  old `fc.float` form; doc update is a Slice 5/6 polish item.
+- **tsconfig:** test files excluded from tsc on both workspaces
+  (`"exclude": ["src/**/*.test.ts"]`); vitest type-checks tests at run
+  time via its own resolver. Re-evaluate at Slice 2.2.3 / 3.2.4.
+- **Math correctness:** AI derives + cites; human audits citations,
+  not derivations. Pattern reusable for Slice 5.3.3's second
+  math-correctness anchor.
+- **Architecture / time / units / founding date / persistence /
+  libraries:** unchanged from earlier handover — see
+  [Phase1Design.md §0, §16, §17](Phase1Design.md).
+
+---
+
+## Open active risks
+
+In [Phase1RiskRegister.md](Phase1RiskRegister.md):
+
+| ID | Status | Notes |
+|---|---|---|
+| R-001..R-012 | Open | Distributed across slices per their target. |
+| R-013 | Open | esbuild/vite moderate vuln; deferred to Slice 6 polish per original plan. |
+| **R-014** | **Open** | **Slice 0 turchin.cycle.test.ts peak-bound mismatch; will fire at Slice 2.2.3. Address at Slice 2.1.0 amendment (above).** |
+| R-015 | Mitigated | tsconfig exclude on both workspaces; closes at Slice 2.2.3 + 3.2.4 when anchor modules land. |
+
+---
 
 ## Open seams flagged for later phases (do NOT build now)
 
 - Exogenous resupply (`resupplyRate` param or `supply-drop` event) —
-  `// TODO: supply` marker is already in [model.ts](../../client/src/sim/model.ts).
-- Option D widening to `(P, E, S)` — `ModelKind` discriminator ready.
+  `// TODO: supply` marker in
+  [model.ts](../../client/src/sim/model.ts).
+- Option D widening to `(P, E, S)` — `ModelKind` discriminator ready
+  in [shared/src/index.ts](../../shared/src/index.ts).
 - MeridianWorlds integration.
 - Non-Turchin alternatives (Allee, Ricker, etc.).
+- F-1.3.3-1 (time-scale toggle) + F-1.3.3-2 (brush) — deferred from
+  Slice 1.3.3 to Slice 5's `Controls.tsx`.
+
+---
 
 ## First steps in a new session
 
-1. **Read this file in full** (especially "Critical" and "Recommended
-   strategy").
-2. `git status` + `git diff --stat` — confirm 9 modified + 2 new files
-   unchanged from the snapshot above. If different, the user did
-   something between sessions; ask before touching anything.
-3. Open [Phase1Checklist.md](Phase1Checklist.md) and locate the 1.3.3
-   block. Skim the 1.3.3.fix-1 through 1.3.3.fix-19 cascade for
-   context, but **do not try to continue the cascade** — that's the
-   trap that prompted the handover.
-4. Decide: **simplify-and-defer** (recommended) or **debug D-15 in
-   place**? Surface this as the first decision to the user; let them
-   pick.
-5. Whichever path: amend the checklist first per
-   `feedback_checklist_authoritative` (e.g. add 1.3.3.fix-20 = "revert
-   App.tsx" or "diagnose D-15 in browser DOM"), then execute under
-   double-approval.
-6. Treat all retained behaviors carefully — `peoplePerUnit` display,
-   the §8.3 tooltip-shows-both-units rule, and the locked Y axis idea
-   are good and should survive any revert.
+1. Read this file in full (especially "Critical pre-2.1.1 carry-over").
+2. `git status` + `git log --oneline -5` — confirm HEAD is `4d497ef`
+   and working tree is clean. If different, the user did something
+   between sessions; **ask before touching anything**.
+3. Run `npm test`, `npm run typecheck`, `npm run build` — confirm they
+   match the "Verifications" block above. If anything has drifted, ask.
+4. Open [Phase1Checklist.md](Phase1Checklist.md), find the Slice 2
+   block. The first unchecked step is 2.1.1. Surface the R-014
+   amendment to the user *first* — propose adding it as a numbered
+   step (likely 2.1.0) before 2.1.1 fires. Get double-approval, then
+   execute the amendment and proceed.
+5. Once R-014 is filed and the anchor bound is widened, Slice 2 red
+   phase (2.1.1 → 2.1.6) begins.
