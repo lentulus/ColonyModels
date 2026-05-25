@@ -1253,12 +1253,32 @@ code will be replaced when Slice 5's real `Controls.tsx` ships
       and tracked (Slice 0 anchor bound mismatch — surfaces at
       Slice 2.2.3), R-015 Mitigated (closes at Slice 2.2.3 + Slice
       3.2.4 when anchor modules land).
-- [ ] **1.3.6 [AI]** Pre-commit triage.
-      *Result:* —
-- [ ] **1.3.7 [HUMAN]** Approve commit.
-      *Result:* —
-- [ ] **1.3.8 [AI]** Commit with `green:` prefix. Report hash.
-      *Result:* —
+- [x] **1.3.6 [AI]** Pre-commit triage.
+      *Result:* Done 2026-05-25. Posted in chat: 14 files inventoried
+      (12 modified + 2 untracked), categorised by purpose (5 code,
+      2 build config, 7 docs), totals 992 insertions + 28 deletions
+      across the slice; proposed `green:` commit message drafted
+      with structured "What lands" + DoD summary + Co-Authored-By
+      footer. No secrets, no `node_modules`, no build artefacts in
+      the stage list.
+- [x] **1.3.7 [HUMAN]** Approve commit.
+      *Result:* Approved 2026-05-25. First confirmation
+      "aaaaaaaaaaaaszapprove commit" arrived with a cat-induced
+      prefix; double-approval gate caught it, Claude echoed
+      explicit-staged-file-list + no-push + no-amend; user
+      confirmed clear ("Sorry, cat. Which is indeed why we have
+      the rule. I confirm, clear to proceed"). [R-008](Phase1RiskRegister.md)
+      mitigation working as intended.
+- [x] **1.3.8 [AI]** Commit with `green:` prefix. Report hash.
+      *Result:* Committed 2026-05-25 as
+      `4d497ef green: Slice 1 — model + integrator + math-correctness anchors`
+      (14 files changed, 992 insertions, 28 deletions; new files
+      `client/src/sim/model.cycle.test.ts` and
+      `docs/design/Phase1MathDerivations.md`). `git status` clean
+      after commit. Branch `main` now 1 commit ahead of
+      `origin/main`; no push performed (per durable
+      [implementation-model rule](../../../.claude/projects/-home-lentulus-projects-ColonyModels/memory/feedback_implementation_model.md)
+      — never push without explicit ask).
 
 ---
 
