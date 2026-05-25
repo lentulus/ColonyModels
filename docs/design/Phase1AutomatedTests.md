@@ -247,6 +247,59 @@ designed to push S negative in one step. Assert `S === 0` afterwards
 
 ---
 
+### 1.3.4b — Demographic-fiscal cycle features (math-correctness anchor)
+
+- **Aligned with checklist step:** 1.3.4b (retroactively added 2026-05-25
+  to address the 1.3.4 verification gap — project lead cannot personally
+  audit Turchin's math).
+- **File:** `client/src/sim/model.cycle.test.ts`.
+- **Derivation source:** [Phase1MathDerivations.md](Phase1MathDerivations.md)
+  §3 (citation-anchored to Turchin, *Historical Dynamics* Ch. 7 pp.122-131).
+
+**What it verifies.** Integrates [advanceTick](../../client/src/sim/integrator.ts#L42)
+for 1000 yr with [Phase1Design §17](Phase1Design.md) "blank-run" defaults
+(`r=0.02, β=0.25, c=3, s0=10, N₀=0.5, S₀=0` — matches Turchin Fig 7.1
+verbatim), then asserts the seven derived cycle features against the
+resulting trajectory.
+
+**Setup.** Direct integrator driver (no replay engine — that's Slice 2):
+
+| Knob | Value | Source |
+| ---- | ----- | ------ |
+| Params | `{r: 0.02, beta: 0.25, c: 3, s0: 10}` | Phase1Design §17 |
+| Initial state | `{N: 0.5, S: 0}` | Phase1Design §17 (Turchin p.123: $N_0 = k_0/2$) |
+| Horizon | 1000 yr | Long enough to confirm post-collapse equilibrium |
+| Sample tick | 1 yr | Annual resolution for extrema detection |
+| Integrator sub-step | 1/365.25 yr | Daily; matches production replay loop in §6.2 |
+
+**Pass criteria (seven assertions).**
+
+| # | Assertion | Source |
+| - | --------- | ------ |
+| 1 | At $t = 1000$: $N \in [0.99, 1.01]$ AND $S = 0$ exactly | §3.1 — Turchin p.123 "equilibrium $N = k_0$, $S = 0$ is locally stable" |
+| 2 | Exactly one local N-maximum over $t \in [1, 999]$ | §3.3 — Turchin p.123 "once the state collapses, it cannot arise again" + p.131 |
+| 3 | N-peak time in [200, 260] yr | §3.5 — Turchin Fig 7.1a peak at $t \approx 225$ yr; tolerance ±30 yr |
+| 4 | N-peak amplitude in [2.8, 3.6) | §3.6 — Turchin Eq 7.3 bounds $k(S) < 1+c$; Fig 7.1a peak height |
+| 5 | S-peak time strictly < N-peak time | §3.4 — Turchin p.123 "expenditures lag revenues" + Fig 7.1a |
+| 6 | $\max_t k(S(t)) \in [3.0, 3.7)$ | §3.2 — Eq 7.3 envelope; observed 3.49 with §17 params |
+| 7 | $\min_t N(t) \ge 0$, $\min_t S(t) \ge 0$, both final-state values finite | §3.7 — Phase1Design §4 clamp invariants |
+
+**Failure modes.**
+- `rhsC` sign error in dS/dt (production - β·N): would invert N/S phase ordering, breaking #5.
+- Manual S-reset disabled or moved outside `advanceTick`: would leave S < 0 transiently; breaks #1 and #7.
+- N-clamp removed: post-collapse N could overshoot to negative; breaks #7.
+- RK4 coefficients wrong (e.g. `(k1 + k2 + k3 + k4)/4` instead of `(k1 + 2k2 + 2k3 + k4)/6`): cycle period drifts; breaks #3.
+- `k(S)` formula off (`c·S/s0` instead of `c·S/(s0+S)`): saturation behavior changes; breaks #6 + #4.
+- Parameter mis-bind in `advanceTick`'s closure: cycle features go random; breaks several.
+
+**Execution log.**
+- Status: `green`
+- Date: 2026-05-25
+- Evidence: 7/7 assertions pass under `npm test` at Slice 1.3.4b.fix-5 verification (commit pending Slice 1 green).
+- Notes: Sanity-run output captured during development: N-peak `(t=227, N=3.13)`; S-peak `(t=159, S=48.87)`; N at S-peak = 2.62 = exactly `(1-β)·k(S_peak)` = `0.75·3.49` (analytic match to 2 dp); max k(S) = 3.49; final state N=0.9999, S=0. Matches Turchin Fig 7.1a visually (peak ≈ 225 yr).
+
+---
+
 ## Slice 2 — Replay engine
 
 ### 2.1.1 — Replay engine: paramsAt, determinism, branching, mid-tick

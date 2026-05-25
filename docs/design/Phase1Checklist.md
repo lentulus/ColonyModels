@@ -508,11 +508,14 @@ begins. Saved as durable feedback in the
       User advanced without flagging issues — implicit accept of the
       Slice 1.2 working-tree diff (+626/−49, 11 files) presented in
       the 1.3.1 ready-for-review summary.
-- [ ] **1.3.3 [HUMAN]** Run the client (`npm run dev`), visually confirm
+- [x] **1.3.3 [HUMAN]** Run the client (`npm run dev`), visually confirm
       the plot.
       *Result:* First viewing 2026-05-25 by project lead — **not
       accepted**; three defects logged. Gates 1.3.4. Tick once defects
-      are remediated and re-viewed.
+      are remediated and re-viewed. **Accepted 2026-05-25** after the
+      fix-1..fix-20 cascade landed the simplified chart (per fix-20's
+      *Result:* — decades-only, no brush, no scale toggle; N/S +
+      Indexed toggles retained). Closed by fix-21 acceptance.
 
       **Defects (D-1.3.3-1, D-1.3.3-2, D-1.3.3-3):**
 
@@ -955,7 +958,7 @@ code will be replaced when Slice 5's real `Controls.tsx` ships
       `formatTimeLabel`, and the tooltip's `timeScale` prop left
       intact for clean Slice-5 re-introduction. No test changes (UI
       excluded per test-first rule).
-- [ ] **1.3.3.fix-21 [HUMAN]** Re-view in browser (`npm run dev`).
+- [x] **1.3.3.fix-21 [HUMAN]** Re-view in browser (`npm run dev`).
       Verify: X axis labelled in decades with integer ticks every
       decade (0, 10, 20, … 100); N and S per-line toggles work;
       Indexed toggle works; no brush below the chart; no Decades
@@ -963,19 +966,293 @@ code will be replaced when Slice 5's real `Controls.tsx` ships
       1.3.4. If new defects surface, re-log under D-1.3.3-N at a
       gated checklist amendment — do not chain another fix without
       explicit direction.
-      *Result:* —
-- [ ] **1.3.4 [HUMAN]** **Math-correctness review** (§11.1): the cycle
+      *Result:* Accepted 2026-05-25 ("looks good"). Simplified chart
+      passes visual review; fix-1..fix-20 cascade closed.
+- [x] **1.3.4 [HUMAN]** **Math-correctness review** (§11.1): the cycle
       should be *visible* with §17 defaults even though only the integrator
       is wired up (no replay yet, so this is a single straight integration).
-      *Result:* —
-- [ ] **1.3.4a [AI]** Tracking sweep: update
+      *Result:* Marked approved 2026-05-25 by project lead — but the
+      project lead flagged that they cannot personally verify the math
+      ("I really can't do the math myself"). The tick is a process
+      formality, NOT a substantive math-correctness confirmation.
+      **Verification gap raised as a structural concern** — see
+      `1.3.4b` below before Slice 1 commits.
+- [ ] **1.3.4b [AI]** Math-correctness verification — derivation +
+      codified test. Addresses the 1.3.4 verification gap (project
+      lead cannot personally verify the math). Steps:
+      1. Read Turchin *Historical Dynamics* §7 (demographic-fiscal
+         model chapter, PDF in [docs/reference/](../reference/)) for
+         the §17 defaults (r=0.02, β=0.25, c=3, s0=1).
+      2. Derive expected cycle features for a 1000-year integration
+         from those defaults: period range, peak count over horizon,
+         N/S phase lag direction, amplitude bounds, equilibrium
+         properties. Cite specific Turchin equations / page numbers
+         for each derived feature.
+      3. Write the derivation to
+         [Phase1MathDerivations.md](Phase1MathDerivations.md) (new
+         file). User reviews this at 1.3.4c by checking that each
+         cited Turchin passage actually exists — verifying the chain
+         of citations, not the derivation itself.
+      4. Codify the accepted features as a quantitative test at
+         `client/src/sim/model.cycle.test.ts` (named to avoid
+         collision with the Slice 2 anchor `turchin.cycle.test.ts`).
+         The test integrates with §17 defaults and asserts each
+         derived feature.
+      5. Run `npm test`; confirm `model.cycle.test.ts` passes.
+      *Result:* Done 2026-05-25. Read Turchin Ch. 7 §7.1, §7.2.1 (Eq
+      7.1-7.4, Fig 7.1 p.124, Fig 7.2 p.125) from
+      [docs/reference/](../reference/dokumen.pub_historical-dynamics-why-states-rise-and-fall-1400889316-9781400889310.pdf).
+      Wrote new file
+      [Phase1MathDerivations.md](Phase1MathDerivations.md) with seven
+      citation-anchored derivations (§3.1 stateless equilibrium and
+      stability, §3.2 k(S) envelope, §3.3 single-excursion structure,
+      §3.4 S-peak-before-N-peak phase ordering, §3.5 centuries-scale
+      duration via r-scaling, §3.6 amplitude bound by k_max, §3.7
+      non-negativity). Codified as
+      [client/src/sim/model.cycle.test.ts](../../client/src/sim/model.cycle.test.ts)
+      — 7 tests, all green. `npm test`: client 15/15 pass (was 8;
+      +7); turchin.cycle.test.ts still red at import (Slice 2);
+      runs.roundtrip.test.ts still red at import (Slice 3); shared
+      still skip per 1.1.1. **Three findings surfaced (do not
+      execute here, flagged for follow-up):**
+      - **F-1.3.4b-1.** §17 uses s₀=1 but Turchin Fig 7.1 / Fig 7.2
+        use s₀=10. Per Turchin p.125, smaller s₀ amplifies the cycle
+        excursion. Decision needed before Slice 2: amend §17 or
+        document deliberate deviation.
+      - **F-1.3.4b-2.** §17 uses N₀=0.2 but Turchin Fig 7.1 prose
+        (p.123) uses N₀=k₀/2=0.5. Extends the growth phase by
+        ~50 yr; affects timing tolerances.
+      - **F-1.3.4b-3.** Slice 0 anchor
+        [turchin.cycle.test.ts](../../client/src/sim/turchin.cycle.test.ts)
+        asserts "first peak in [80, 220] yr" — with §17 defaults the
+        actual N-peak is at t ≈ 318 yr. The anchor will fail at
+        Slice 2.2.3 when `replayTo` lands. Needs amendment before
+        Slice 2's red-review gate.
+
+      Remediation chosen 2026-05-25 ("on 1,2,3 use the [parameter]
+      set and initial values per Turchin; this is not an immutable
+      decision but it is the best way to verify your code"): adopt
+      Turchin Fig 7.1 / §7.2.1 exact params so the integrator can be
+      cross-checked against the published plot. Numbered fix
+      sub-steps below per the checklist-is-the-contract rule.
+- [x] **1.3.4b.fix-1 [AI]** Amend [Phase1Design.md §17](Phase1Design.md):
+      `s0: 1 → 10`, `initialState.N: 0.2 → 0.5` (Turchin's k₀/2, Fig
+      7.1 prose p.123). Resolves F-1.3.4b-1 and F-1.3.4b-2.
+      *Result:* Done 2026-05-25. §17 BLANK_RUN now uses Turchin Fig
+      7.1 / §7.2.1 verbatim. Prose paragraph below the code block
+      rewritten to note one-excursion behavior (vs the prior
+      misleading "~200-yr secular cycle" phrasing) and point at
+      [Phase1MathDerivations.md](Phase1MathDerivations.md) for the
+      citation-anchored derivation.
+- [x] **1.3.4b.fix-2 [AI]** Re-run sanity-check integration with
+      new defaults; rewrite §3 numerical-confirmation lines and §2
+      parameter table in
+      [Phase1MathDerivations.md](Phase1MathDerivations.md); retire
+      F-1 and F-2 from §5. Update tolerances in
+      [client/src/sim/model.cycle.test.ts](../../client/src/sim/model.cycle.test.ts)
+      to match the new trajectory.
+      *Result:* Done 2026-05-25. Sim with new defaults gives:
+      N-peak (t=227, N=3.13) — matches Fig 7.1a (p.124) peak at
+      t≈225 ✓; S-peak (t=159, S=48.87); N_crit check exact to 2 dp
+      (N at S-peak = 2.62 = 0.75·k(S-peak) = 0.75·3.49); max k(S) =
+      3.49; final state (t=1000) N=0.9999, S=0. §2 table now shows
+      ✓ on every parameter row; §3 numerics all updated; §4 test
+      tolerance table tightened (N-peak time [150,500]→[200,260];
+      amplitude [2.5,4.0)→[2.8,3.6); k_max [3.0,4.0)→[3.0,3.7)); §5
+      strikes F-1 and F-2 as resolved. Test file
+      [model.cycle.test.ts](../../client/src/sim/model.cycle.test.ts)
+      params + assertion bounds updated to match.
+- [x] **1.3.4b.fix-3 [AI]** Re-evaluate F-1.3.4b-3 under new params.
+      If the Slice 0 anchor bound "first peak in [80, 220] yr" now
+      matches the actual peak time, dissolve F-3 in the derivation
+      doc. If not, narrow the description with the new observed peak
+      time and leave for a Slice 2 red-review amendment (do NOT
+      touch the anchor test file under this slice — its content is
+      locked until Slice 2.2.3).
+      *Result:* F-3 narrowed, not dissolved. Actual N-peak with the
+      revised §17 defaults is at t=227 yr — 7 yr above the anchor's
+      upper bound of 220. Phase1MathDerivations §5 now describes
+      the narrowed finding and proposes widening the anchor to
+      [180, 280] when Slice 2.2.3 lands. Anchor file unchanged.
+- [x] **1.3.4b.fix-4 [AI]** Verify [App.tsx](../../client/src/App.tsx)
+      tracks the new §17 defaults. If hardcoded inline (not sourced
+      from a shared constant), update the hardcoded values in
+      lockstep so the chart matches the test inputs.
+      *Result:* Done 2026-05-25. App.tsx hardcodes §17 inline at
+      lines 17–18 (`BLANK_PARAMS`, `BLANK_INITIAL`) — no shared
+      constant module. Both values updated in lockstep: `s0: 1 →
+      10`, `N: 0.2 → 0.5`. The chart will re-render with the new
+      trajectory on next `npm run dev` (no behavioral retest
+      required under this slice — the math gate is the only
+      contract on the deterministic output; visual review already
+      passed at 1.3.3.fix-21).
+- [x] **1.3.4b.fix-5 [AI]** Run `npm test`; confirm model.cycle.test.ts
+      and all prior client tests green; only the expected Slice 2
+      and Slice 3 anchor reds remain.
+      *Result:* Done 2026-05-25. `npm --workspace client run test`:
+      4 test files pass, 15 tests green (model.test.ts 3, integrator.test.ts
+      4, logistic.analytic.test.ts 1, model.cycle.test.ts 7); 1 file fails
+      at import — `turchin.cycle.test.ts` missing `./replay` (Slice 2
+      anchor, expected red until Slice 2.2.3). Server and shared workspaces
+      unchanged (`runs.roundtrip.test.ts` missing `../app` until Slice 3;
+      shared has no test files per 1.1.1).
+- [x] **1.3.4c [HUMAN]** Review
+      [Phase1MathDerivations.md](Phase1MathDerivations.md). For each
+      cycle-feature assertion in `model.cycle.test.ts`, verify the
+      cited Turchin passage exists (open the PDF, locate the
+      equation/page). Do NOT validate the derivation math itself —
+      that's the AI's work; you're checking sourcing integrity.
+      Either accept (proceed to 1.3.4a) or reject (request
+      re-derivation under a new checklist amendment; do NOT proceed
+      to 1.3.5 with this gate red).
+      *Result:* Accepted 2026-05-25 ("citations confirmed"). All
+      eight citation clusters across Turchin pp.122-131 verified:
+      Eq 7.3 / Eq 7.4 / Fig 7.1 (model construction), p.123 (local
+      stability + S≥0 invariant + N₀=k₀/2 + deterministic single-
+      excursion + revenue-lag), p.125 (r-scaling + s₀ role +
+      stochastic-forcing description), p.126 ("2-3 centuries"
+      quote), p.131 (single-excursion confirmation). Citation-
+      integrity gate green.
+- [x] **1.3.4a [AI]** Tracking sweep: update
       [Phase1RiskRegister.md](Phase1RiskRegister.md); draft Slice 1 entry
       in [Phase1Retros.md](Phase1Retros.md); fill in
       [Phase1DoD.md](Phase1DoD.md) Slice 1 row.
-      *Result:* —
-- [ ] **1.3.5 [HUMAN]** **DoD sign-off** — confirm DoD all-green or
-      explicitly waived; retro entry approved.
-      *Result:* —
+      *Result:* Done 2026-05-25. RiskRegister: added R-014 (Slice 0
+      anchor bound [80,220] now 7 yr too tight under Turchin
+      verbatim params — fires at Slice 2.2.3) and R-015 (typecheck
+      and build pre-existing broken since Slice 0.2.3 commit
+      `e9cbad9`; surfaced at this DoD assessment, three remediation
+      options on the table for 1.3.5 decision). Retros: Slice 1
+      entry written — six surprises (1.3.3 UI cascade, 1.3.4 math-
+      verification gap, F-1/F-2 latent §17 errors, deterministic
+      single-excursion correctness, git-stash near-miss, R-015
+      surprise), five "what worked" items, four "next time", and
+      five action items. DoD: Slice 1 row filled in the sign-off
+      table (pending [HUMAN] at 1.3.5); four waivers proposed and
+      filed in the Waivers table — "Anchors still green" partial,
+      "Asserts properties green" (Slice 1's Asserts properties not
+      yet implemented), "Test execution logs populated"
+      (Phase1AutomatedTests.md has no 1.3.4b section), and
+      "typecheck/build" (R-015). Each waiver has a target slice for
+      satisfaction or an explicit "decide at 1.3.5" handoff.
+- [x] **1.3.4d [AI]** Remediate R-015 (pre-existing typecheck/build
+      failure since Slice 0.2.3). Added 2026-05-25 per
+      checklist-is-the-contract after the 1.3.4a DoD assessment
+      surfaced the gap. **Decision history:** initial direction
+      (2026-05-25, "execute option A") was to add `.js` to the
+      NodeNext-violating server import. Execution showed (a) was
+      insufficient — fixed TS2834 syntactic but exposed TS2307
+      (module genuinely missing). The same missing-module pattern
+      affects client's `turchin.cycle.test.ts` (importing `./replay`).
+      Pivoted (2026-05-25, "path 1" + scope extension to client) to
+      option (c) on both workspaces: tsconfig `exclude` for test
+      files. Executed:
+      1. Kept the `.js` edit on
+         [server/src/routes/runs.roundtrip.test.ts](../../server/src/routes/runs.roundtrip.test.ts)
+         (forward-correct for Slice 3 when `app.ts` lands).
+      2. Added `"exclude": ["src/**/*.test.ts"]` to both
+         [server/tsconfig.json](../../server/tsconfig.json) and
+         [client/tsconfig.json](../../client/tsconfig.json).
+      3. Verified `npm run typecheck` clean across all 3 workspaces;
+         `npm run build` clean across all 3 workspaces.
+      4. Verified vitest still finds and red-imports both anchor
+         tests with semantics unchanged (client: 15 green + 1 file
+         red at `./replay`; server: 1 file red at `../app.js`).
+
+      **Trade-off accepted:** test files are no longer type-checked
+      by tsc — vitest type-checks them at run time via its own
+      resolver. A type error in a test file that vitest doesn't
+      exercise (unreachable branch, dead code) will not surface
+      until the test is run. Acceptable in this project's TDD
+      cadence because every test file is exercised on every
+      `npm test`.
+      *Result:* Done 2026-05-25. Working-tree changes: M
+      `server/src/routes/runs.roundtrip.test.ts` (.js extension), M
+      `server/tsconfig.json` (+exclude), M `client/tsconfig.json`
+      (+exclude). `npm run typecheck` and `npm run build` both
+      clean. R-015 status updated to Mitigated in
+      [Phase1RiskRegister.md](Phase1RiskRegister.md); Slice 1 DoD
+      waiver row for typecheck/build removed (Slice 1 row now
+      reflects 3 waivers, not 4). Closes naturally at Slice 2.2.3
+      / Slice 3.2.4.
+- [x] **1.3.4b.fix-6 [AI]** Backfill
+      [Phase1AutomatedTests.md](Phase1AutomatedTests.md) with a
+      "1.3.4b — model.cycle.test.ts" section mirroring the format
+      of the existing 1.1.2 / 1.1.3 sections (purpose, setup,
+      pass criteria, failure modes, execution log). Resolves the
+      Slice 1 DoD waiver "Test execution logs populated" per the
+      1.3.5 walk-through recommendation accepted 2026-05-25.
+      *Result:* Done 2026-05-25. New section "1.3.4b —
+      Demographic-fiscal cycle features" added between 1.1.3 and
+      Slice 2's section in
+      [Phase1AutomatedTests.md](Phase1AutomatedTests.md). Includes
+      purpose, setup table, seven pass-criteria assertions (each
+      cited to a derivation §), six failure modes, and a green
+      Execution log dated 2026-05-25 with the
+      `(t=227, N=3.13) / (t=159, S=48.87)` sanity-run evidence and
+      the analytic `N at S-peak = (1-β)·k(S-peak) = 2.62` cross-
+      check. Slice 1 DoD waiver row for "Test execution logs
+      populated" struck through as resolved.
+- [x] **1.3.4e [AI]** Write Slice 1 Asserts properties to satisfy
+      the Slice 1 DoD waiver "Asserts properties green" per the
+      1.3.5 walk-through recommendation accepted 2026-05-25.
+      [Phase1PBT.md](Phase1PBT.md) §"Conventions" mandates
+      properties live alongside example-based tests in the same
+      `*.test.ts` file under a `describe("properties", ...)` block
+      — so this step extends the existing
+      [client/src/sim/model.test.ts](../../client/src/sim/model.test.ts)
+      and [client/src/sim/integrator.test.ts](../../client/src/sim/integrator.test.ts)
+      rather than creating new files.
+      Scope: 13 properties — P-M-1..7 (model) and P-I-1..6
+      (integrator) from Phase1PBT.md tables. Default 100 runs per
+      property. After implementation, run `npm test` and confirm
+      all properties green at 100 runs/property; existing
+      example-based tests still green; anchors still expected-red.
+      *Result:* Done 2026-05-25. Added `describe("properties", ...)`
+      blocks to both files; 13 properties total. **Two deviations
+      from Phase1PBT.md, both annotated inline:**
+      (i) `fc.float` → `fc.double` throughout — the doc's
+      verbatim generators use `fc.float` but fast-check 4.x (what's
+      installed) restricts `fc.float` to 32-bit IEEE-754; arbitrary
+      double ranges need `fc.double`. Suggested Phase1PBT.md doc
+      update logged as a Slice 1 retro action item.
+      (ii) P-I-2 written against `advanceTick` rather than
+      `rk4Step` — the S≥0 reset lives in `advanceTick` per
+      Phase1Design §4 + [Decision 0004](adr/0004-generic-rk4-integrator.md);
+      a literal rk4Step-only assertion would fail by design.
+      **One useful Asserts find during execution:** P-M-2
+      ("below k, dN > 0") originally failed on the subnormal
+      `N=5e-324` — `r·N` underflows to exact 0. Resolved by
+      tightening `arbN` lower bound from `0` to `1e-100`,
+      consistent with Phase1PBT.md §"Conventions" guidance to
+      bound generators to physically meaningful ranges. Logged
+      in Slice 1 retro per Phase1PBT.md §"Failure handling" rule
+      3. Final tally: `npm test` reports 28 client tests pass
+      (15 prior + 13 new properties). Slice 1 DoD waiver row for
+      "Asserts properties green" struck through as resolved.
+- [x] **1.3.5 [HUMAN]** **DoD sign-off** — confirm DoD all-green or
+      explicitly waived; retro entry approved. **Blocked until 1.3.4c
+      is green** — the DoD claim "demographic-fiscal model math
+      correct" requires the codified test from 1.3.4b passing AND
+      the derivation accepted at 1.3.4c.
+      *Result:* Signed off 2026-05-25 by Lentulus ("We are good to
+      mark done"). Final state: 12 of 13 DoD items green; 1 item
+      waived ("Anchors still green" — partial — Slice 0 anchors
+      0.2.2 and 0.2.3 stay red at import until Slices 2.2.3 and
+      3.2.4 respectively; this is structural and continues the
+      Slice 0 waiver pattern). Of the four waivers originally
+      proposed at 1.3.4a, three were resolved via in-slice
+      remediations: 1.3.4d (typecheck/build via tsconfig exclude),
+      1.3.4b.fix-6 (Phase1AutomatedTests.md backfill), 1.3.4e
+      (Asserts properties P-M-1..7 + P-I-1..6, 13 properties green
+      at 100 runs each). Retro entry approved as drafted at
+      1.3.4a (six surprises, five "what worked", four "next time",
+      seven action items with three crossed-through as resolved
+      in-slice). Risk register reviewed: R-013 still Open
+      (deferred to Slice 6 polish per original plan), R-014 Open
+      and tracked (Slice 0 anchor bound mismatch — surfaces at
+      Slice 2.2.3), R-015 Mitigated (closes at Slice 2.2.3 + Slice
+      3.2.4 when anchor modules land).
 - [ ] **1.3.6 [AI]** Pre-commit triage.
       *Result:* —
 - [ ] **1.3.7 [HUMAN]** Approve commit.

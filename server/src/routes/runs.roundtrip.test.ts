@@ -4,7 +4,7 @@ import request from "supertest";
 // `server/src/app.ts` (extracting the express instance from index.ts so it
 // can be used by supertest without binding a port). That's the expected red
 // state at Slice 0.
-import { app } from "../app";
+import { app } from "../app.js";
 
 /**
  * Slice 0 regression anchor — HTTP round-trip across all run endpoints.

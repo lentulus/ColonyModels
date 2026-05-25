@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
+import fc from "fast-check";
 // Neither symbol exists yet — these imports will fail until Slice 1.2.x.
 // That's the expected red state at Slice 1 step 1.1.4.
 import { rk4Step, advanceTick } from "./integrator";
+import { rhsC } from "./model";
 
 /**
  * Slice 1 step 1.1.3 — RK4 single-step + clamps.
@@ -94,5 +96,129 @@ describe("advanceTick — S >= 0 manual reset outside the step (Setup C)", () =>
     // N should not have been damaged: it grows slowly under §17-like
     // dynamics. Just sanity-check it's non-negative.
     expect(out.N).toBeGreaterThanOrEqual(0);
+  });
+});
+
+/**
+ * Slice 1.3.4e — Asserts properties P-I-1..P-I-6 for rk4Step and advanceTick.
+ *
+ * Properties per [Phase1PBT.md](../../../docs/design/Phase1PBT.md)
+ * §"Properties — integrator". Phase1PBT.md tables don't supply explicit
+ * generators for this section (only the table of properties); generators
+ * below are derived from the model-section ranges and bounded for
+ * physical sensibility.
+ *
+ * Convention (Phase1PBT.md §"Conventions"): properties live in the same
+ * file as example-based tests, under a separate `describe("properties")`
+ * block.
+ *
+ * Documented deviation — P-I-2 is written against `advanceTick`, not
+ * `rk4Step`. The S>=0 manual reset lives in `advanceTick` per Phase1Design
+ * §4 and [Decision 0004](../../../docs/design/adr/0004-generic-rk4-integrator.md);
+ * a literal rk4Step-only assertion would fail on any input that pushes S
+ * negative (rk4Step intentionally does not clamp S). The property's
+ * underlying invariant — "manual reset upholds S non-negativity" — is
+ * exercised correctly at the advanceTick boundary.
+ */
+
+// arbN lower bound 1e-100 to exclude IEEE-754 subnormals — see model.test.ts header.
+const arbN = fc.double({ min: 1e-100, max: 5, noNaN: true });
+const arbS = fc.double({ min: 0, max: 50, noNaN: true });
+const arbR = fc.double({ min: 0.001, max: 0.5, noNaN: true });
+const arbBeta = fc.double({ min: 0, max: 2, noNaN: true });
+const arbC = fc.double({ min: 0, max: 10, noNaN: true });
+const arbS0 = fc.double({ min: 0.01, max: 10, noNaN: true });
+const arbState = fc.record({ N: arbN, S: arbS });
+const arbParams = fc.record({ r: arbR, beta: arbBeta, c: arbC, s0: arbS0 });
+// Integrator sub-step in [1/365.25, 1/10]: bounded inside daily-resolution
+// regime where RK4 stays stable for the §17 parameter ranges.
+const arbDt = fc.double({ min: 1 / 365.25, max: 0.1, noNaN: true });
+// Tick horizon in [1/100 yr, 1 yr]: bracketed away from zero and one yr
+// so advanceTick's nSteps = round(tick/dt) loop runs a meaningful count.
+const arbTickYears = fc.double({ min: 0.01, max: 1, noNaN: true });
+
+describe("rk4Step + advanceTick — Asserts properties", () => {
+  it("P-I-1: rk4Step(s, dt, rhs).N >= 0 for all valid (s, p, dt) (clamp upholds N invariant)", () => {
+    fc.assert(
+      fc.property(arbState, arbParams, arbDt, (s, p, dt) => {
+        const rhs = (st: StateC): StateC => rhsC(st, p);
+        const out = rk4Step(s, dt, rhs);
+        expect(out.N).toBeGreaterThanOrEqual(0);
+      }),
+    );
+  });
+
+  it("P-I-2: advanceTick(s, p, tick, dt).S >= 0 (manual reset upholds S invariant)", () => {
+    // Deviation from doc — see file header. Underlying invariant tested.
+    fc.assert(
+      fc.property(arbState, arbParams, arbTickYears, arbDt, (s, p, tick, dt) => {
+        const out = advanceTick(s, p, tick, dt);
+        expect(out.S).toBeGreaterThanOrEqual(0);
+      }),
+    );
+  });
+
+  it("P-I-3: one full-dt step ≈ two half-dt steps within RK4's O(dt⁵) local error", () => {
+    // For the linear RHS dN/dt = N, RK4 is exact through Taylor-4. The
+    // residual between (full step) and (two half steps) is O(dt⁵).
+    // Concrete bound for our parameter domain: ≤ 1e-10 at dt = 0.01,
+    // which scales as dt⁵ — empirically 1e-9 is a generous fixed bound.
+    const rhsLinearN = (st: StateC): StateC => ({ N: st.N, S: 0 });
+    const dt = 0.01;
+    fc.assert(
+      fc.property(arbN, (N) => {
+        const s = { N, S: 0 };
+        const oneStep = rk4Step(s, dt, rhsLinearN);
+        const halfA = rk4Step(s, dt / 2, rhsLinearN);
+        const twoHalfSteps = rk4Step(halfA, dt / 2, rhsLinearN);
+        // The closed-form solution is N · e^dt; both schemes agree on
+        // Taylor terms up to dt⁴. Residual ~ N · dt⁵ / k where k is an
+        // RK4-specific constant — bounded by 1e-9 for our N ∈ [0, 5].
+        expect(Math.abs(oneStep.N - twoHalfSteps.N)).toBeLessThanOrEqual(1e-9);
+      }),
+    );
+  });
+
+  it("P-I-4: advanceTick is deterministic — two calls with identical inputs return identical outputs", () => {
+    fc.assert(
+      fc.property(arbState, arbParams, arbTickYears, arbDt, (s, p, tick, dt) => {
+        const a = advanceTick(s, p, tick, dt);
+        const b = advanceTick(s, p, tick, dt);
+        expect(a.N).toBe(b.N);
+        expect(a.S).toBe(b.S);
+      }),
+    );
+  });
+
+  it("P-I-5: advancing a fixed horizon in two halves equals advancing in one (composability)", () => {
+    // Composability holds when both halves dispatch the same total number
+    // of integrator sub-steps. To guarantee that, pick a fixed dt and a
+    // total tick that's an even multiple of dt — then tick/2 is an
+    // integer multiple of dt as well and the round() in advanceTick
+    // doesn't split steps differently.
+    const dt = 0.01;
+    const tick = 0.1; // 10 sub-steps total, 5 + 5 if split.
+    fc.assert(
+      fc.property(arbState, arbParams, (s, p) => {
+        const oneShot = advanceTick(s, p, tick, dt);
+        const half1 = advanceTick(s, p, tick / 2, dt);
+        const twoHalves = advanceTick(half1, p, tick / 2, dt);
+        expect(Math.abs(oneShot.N - twoHalves.N)).toBeLessThanOrEqual(1e-9);
+        expect(Math.abs(oneShot.S - twoHalves.S)).toBeLessThanOrEqual(1e-9);
+      }),
+    );
+  });
+
+  it("P-I-6: N=0 stays N=0 under advanceTick (no spontaneous resurrection)", () => {
+    fc.assert(
+      fc.property(arbS, arbParams, arbTickYears, arbDt, (S, p, tick, dt) => {
+        const out = advanceTick({ N: 0, S }, p, tick, dt);
+        // Zero-N is a fixed point of rhsC.N = r·N·(1 - N/k) (factor of N).
+        // RK4 of a zero-N fixed point produces zero increments at each
+        // stage; the N clamp doesn't have to act, but if it did it would
+        // also pin N to 0.
+        expect(out.N).toBe(0);
+      }),
+    );
   });
 });

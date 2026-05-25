@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import fc from "fast-check";
 // `rhsC` doesn't exist yet — this import will fail until Slice 1.2.x.
 // That's the expected red state at Slice 1 step 1.1.4.
 import { rhsC } from "./model";
@@ -77,5 +78,117 @@ describe("rhsC — Turchin Eq 7.4 (Option C), hand-computed cases", () => {
     const out = rhsC(s, P);
     expect(Math.abs(out.N - 0.008)).toBeLessThan(TOL);
     expect(Math.abs(out.S - 0.275)).toBeLessThan(TOL);
+  });
+});
+
+/**
+ * Slice 1.3.4e — Asserts properties P-M-1..P-M-7 for `rhsC`.
+ *
+ * Properties per [Phase1PBT.md](../../../docs/design/Phase1PBT.md) §"Properties — model".
+ * Generators verbatim from the same doc; default 100 runs/property.
+ *
+ * Convention (Phase1PBT.md §"Conventions"): properties live in the same
+ * file as example-based tests, under a separate `describe("properties")`
+ * block. Every property comment names the invariant in plain English.
+ */
+
+// Generators per Phase1PBT.md §"Properties — model". One deviation from
+// the doc table's verbatim `min: 0`: arbN lower bound is 1e-100 rather
+// than 0, to exclude IEEE-754 subnormals where `r · N` can underflow to
+// exact zero even though the math says `> 0`. Subnormal N values
+// (≤ ~1e-308) are below any physically meaningful colony scale —
+// even at peoplePerUnit = 10^308 that's < 1 settler — so excluding them
+// preserves Phase1PBT.md §"Conventions" intent that generators stay in
+// the "physically meaningful" range. P-M-1 explicitly tests N = 0 with
+// a hardcoded state, so the generator's lower bound doesn't affect it.
+const arbN = fc.double({ min: 1e-100, max: 5, noNaN: true });
+const arbS = fc.double({ min: 0, max: 50, noNaN: true });
+const arbR = fc.double({ min: 0.001, max: 0.5, noNaN: true });
+const arbBeta = fc.double({ min: 0, max: 2, noNaN: true });
+const arbC = fc.double({ min: 0, max: 10, noNaN: true });
+const arbS0 = fc.double({ min: 0.01, max: 10, noNaN: true });
+const arbState = fc.record({ N: arbN, S: arbS });
+const arbParams = fc.record({ r: arbR, beta: arbBeta, c: arbC, s0: arbS0 });
+
+// k(S, p) — k is not exported from model.ts (lives inline inside rhsC),
+// so we replicate the formula locally for property assertions that need
+// it. Single source of truth is the inline form in rhsC.
+function kFn(S: number, p: ParamsC): number {
+  return 1 + p.c * (S / (p.s0 + S));
+}
+
+describe("rhsC — Asserts properties", () => {
+  it("P-M-1: at N=0, dN/dt >= 0 (population cannot go negative spontaneously)", () => {
+    fc.assert(
+      fc.property(arbS, arbParams, (S, p) => {
+        const out = rhsC({ N: 0, S }, p);
+        expect(out.N).toBeGreaterThanOrEqual(0);
+      }),
+    );
+  });
+
+  it("P-M-2: below carrying capacity (0 < N < k(S, p)), dN/dt > 0", () => {
+    fc.assert(
+      fc.property(arbState, arbParams, ({ N, S }, p) => {
+        const k = kFn(S, p);
+        fc.pre(N > 0 && N < k);
+        const out = rhsC({ N, S }, p);
+        expect(out.N).toBeGreaterThan(0);
+      }),
+    );
+  });
+
+  it("P-M-3: above carrying capacity (N > k(S, p)), dN/dt < 0", () => {
+    fc.assert(
+      fc.property(arbState, arbParams, ({ N, S }, p) => {
+        const k = kFn(S, p);
+        // r > 0 is guaranteed by arbR's lower bound 0.001.
+        fc.pre(N > k);
+        const out = rhsC({ N, S }, p);
+        expect(out.N).toBeLessThan(0);
+      }),
+    );
+  });
+
+  it("P-M-4: at carrying capacity (N = k(S, p)), dN/dt ≈ 0 within 1e-9", () => {
+    fc.assert(
+      fc.property(arbS, arbParams, (S, p) => {
+        const N = kFn(S, p);
+        const out = rhsC({ N, S }, p);
+        // (1 - N/k) is computed numerically and won't be exactly zero
+        // for all generated p, so allow 1e-9 IEEE-754 slack per the
+        // Phase1PBT.md P-M-4 spec.
+        expect(Math.abs(out.N)).toBeLessThanOrEqual(1e-9);
+      }),
+    );
+  });
+
+  it("P-M-5: k(S, p) is monotonically non-decreasing in S", () => {
+    fc.assert(
+      fc.property(arbS, arbS, arbParams, (S1, S2, p) => {
+        const lo = Math.min(S1, S2);
+        const hi = Math.max(S1, S2);
+        expect(kFn(lo, p)).toBeLessThanOrEqual(kFn(hi, p));
+      }),
+    );
+  });
+
+  it("P-M-6: k(0, p) === 1 (base carrying capacity is the scaling convention)", () => {
+    fc.assert(
+      fc.property(arbParams, (p) => {
+        // arbS0's min = 0.01 ensures s0 > 0; k(0) = 1 + c·0/(s0+0) = 1 exactly.
+        expect(kFn(0, p)).toBe(1);
+      }),
+    );
+  });
+
+  it("P-M-7: rhsC returns finite (non-NaN, non-Infinity) numbers for all valid inputs", () => {
+    fc.assert(
+      fc.property(arbState, arbParams, (s, p) => {
+        const out = rhsC(s, p);
+        expect(Number.isFinite(out.N)).toBe(true);
+        expect(Number.isFinite(out.S)).toBe(true);
+      }),
+    );
   });
 });

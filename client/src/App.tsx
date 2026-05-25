@@ -14,8 +14,8 @@ import type { ParamsC, StateC } from "@colonymodels/shared";
 import { advanceTick } from "./sim/integrator";
 
 // Phase1Design §17 blank-run defaults.
-const BLANK_PARAMS: ParamsC = { r: 0.02, beta: 0.25, c: 3, s0: 1 };
-const BLANK_INITIAL: StateC = { N: 0.2, S: 0 };
+const BLANK_PARAMS: ParamsC = { r: 0.02, beta: 0.25, c: 3, s0: 10 };
+const BLANK_INITIAL: StateC = { N: 0.5, S: 0 };
 const HORIZON_YEARS = 1000; // notional placeholder — F-1.3.3-1
 const DT_INTEG_YEARS = 1 / 365.25;
 const TICK_YEARS = 1; // integration resolution unchanged; time-scale is display-only

@@ -771,14 +771,22 @@ const BLANK_RUN: Omit<Run, "id" | "createdAt"> = {
   t0Epoch:       10_413_792_000,              // 2300-01-01 UTC
   tickSeconds:   2_629_746,                   // 1 month
   peoplePerUnit: 1000,                        // 1 scaled unit = 1000 settlers
-  initialState:  { N: 0.2, S: 0.0 },          // 200 settlers, no surplus
-  initialParams: { r: 0.02, beta: 0.25, c: 3, s0: 1 },  // Turchin's "reasonable" set, scaled
+  initialState:  { N: 0.5, S: 0.0 },          // k₀/2 = 500 settlers, no surplus (Turchin p.123)
+  initialParams: { r: 0.02, beta: 0.25, c: 3, s0: 10 }, // Turchin Fig 7.1 / §7.2.1 verbatim
 };
 ```
 
-`initialParams` come from Turchin §7.2.1 / Fig 7.1: $r=0.02\,\text{yr}^{-1}$,
-$\beta=0.25$, $c=3$, $s_0=1$. With these, the system runs a ~200-yr secular
-cycle — the canonical sanity-check for the integrator.
+`initialParams` and `initialState` come from Turchin §7.2.1 / Fig 7.1 caption
+(p.124) and prose (p.123): $r = 0.02\,\text{yr}^{-1}$, $\beta = 0.25$,
+$c = 3$, $s_0 = 10$, with $N_0 = k_0/2$ and $S_0 = 0$. With these, the
+deterministic model runs **one** state-building / collapse excursion of
+2-3 centuries (Turchin p.126) and then settles to the stateless equilibrium
+$(N = k_0, S = 0)$ for the rest of the horizon (Turchin p.123: "in a
+deterministic world, once the state collapses, it cannot arise again").
+Recurring cycles like Turchin's Fig 7.2 require stochastic forcing, which
+Phase 1 does not implement. This single-excursion behavior is the canonical
+sanity-check for the integrator; see [Phase1MathDerivations.md](Phase1MathDerivations.md)
+for the citation-anchored derivation.
 
 ## 18. Glossary
 
