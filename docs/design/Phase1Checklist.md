@@ -922,6 +922,48 @@ code will be replaced when Slice 5's real `Controls.tsx` ships
       memory files. Working-tree changes not staged or
       committed (the user's choice — see commit-strategy
       section of HANDOVER.md).
+- [x] **1.3.3.fix-20 [AI]** Simplify App.tsx per user direction
+      (2026-05-25): remove `<Brush>` (scroll) and the Decades toggle
+      button; hardcode `timeScale = "decades"` as the only display
+      mode (the only scale at which the cycle is visible at the
+      1000-year horizon). Integration cadence unchanged (`TICK_YEARS =
+      1` year per sample; sub-day RK4 substeps internal to
+      `advanceTick`). Keep: N/S per-line toggle, Indexed-mode toggle,
+      custom tooltip (people + scaled), Y-axis lock + 5% headroom,
+      compact-number Y formatter, integer-decade X ticks.
+
+      **Carry-overs / Deferred to Slice 5:** F-1.3.3-1 (time-scale
+      toggle) and F-1.3.3-2 (brush). *Reason:* Slice 5's
+      `Controls.tsx` is the controls-layer home — components have a
+      place to share state, sibling controls establish UX patterns
+      (button styling, layout, labels), and feature additions don't
+      accumulate as ad-hoc machinery in App.tsx. Building these two
+      controls there is cheaper than retrofitting them into App.tsx
+      now and reworking them later.
+
+      **Closes by removal:**
+      - D-1.3.3-15 — Decades toggle produces no visible change. No
+        toggle now → defect dissolves.
+      - D-1.3.3-12 — Curve peak at different X positions in years vs
+        decades modes. Only one display mode now → no cross-mode
+        discrepancy possible.
+
+      *Result:* Done 2026-05-25. App.tsx: removed `Brush` import,
+      removed `<Brush>` element, removed Decades `<button>`, replaced
+      `useState<TimeScale>("years")` with `const timeScale: TimeScale =
+      "decades"`. ~25 LOC removed. `TimeScale` type, `toDisplayUnit`,
+      `formatTimeLabel`, and the tooltip's `timeScale` prop left
+      intact for clean Slice-5 re-introduction. No test changes (UI
+      excluded per test-first rule).
+- [ ] **1.3.3.fix-21 [HUMAN]** Re-view in browser (`npm run dev`).
+      Verify: X axis labelled in decades with integer ticks every
+      decade (0, 10, 20, … 100); N and S per-line toggles work;
+      Indexed toggle works; no brush below the chart; no Decades
+      toggle button. If accepted, tick 1.3.3 above and proceed to
+      1.3.4. If new defects surface, re-log under D-1.3.3-N at a
+      gated checklist amendment — do not chain another fix without
+      explicit direction.
+      *Result:* —
 - [ ] **1.3.4 [HUMAN]** **Math-correctness review** (§11.1): the cycle
       should be *visible* with §17 defaults even though only the integrator
       is wired up (no replay yet, so this is a single straight integration).

@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import {
-  Brush,
   CartesianGrid,
   Legend,
   Line,
@@ -173,7 +172,7 @@ export function App() {
   const [showN, setShowN] = useState(true);
   const [showS, setShowS] = useState(true);
   const [indexed, setIndexed] = useState(false);
-  const [timeScale, setTimeScale] = useState<TimeScale>("years");
+  const timeScale: TimeScale = "decades";
 
   const baseData = useMemo(() => integrateHardcodedRun(), []);
 
@@ -291,15 +290,6 @@ export function App() {
         >
           Indexed {indexed ? "on" : "off"}
         </button>
-        <button
-          onClick={() =>
-            setTimeScale((v) => (v === "years" ? "decades" : "years"))
-          }
-          aria-pressed={timeScale === "decades"}
-          style={toggleButtonStyle(timeScale === "decades", "#444")}
-        >
-          Decades {timeScale === "decades" ? "on" : "off"}
-        </button>
       </div>
 
       <div style={{ flex: 1, minHeight: 0 }}>
@@ -355,12 +345,6 @@ export function App() {
               name="S (person-years of production)"
               isAnimationActive={false}
               hide={!showS}
-            />
-            <Brush
-              dataKey="t_display"
-              height={28}
-              stroke="#888"
-              travellerWidth={8}
             />
           </LineChart>
         </ResponsiveContainer>
