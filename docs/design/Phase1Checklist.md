@@ -375,8 +375,28 @@ begins. Saved as durable feedback in the
       explicitly amended my "no push" echo to include a push to
       `origin/main` — one-time authorization for this commit batch,
       not a standing rule.
-- [ ] **1.1B.4 [AI]** Run `git commit` with `docs:` prefix. Report hash.
-      *Result:* —
+- [x] **1.1B.4 [AI]** Run `git commit` with `docs:` prefix. Report hash.
+      *Result:* Committed 2026-05-24 as
+      `8f968e6 docs: jargon cleanup — Decisions/Asserts substitutions`
+      (15 files changed, 112 insertions, 69 deletions). Note: a small
+      user-authored commit `94af448 slice 1.1` (Phase1Checklist.md only,
+      +6/-2) landed between Slice 1.1's `996b079` and this docs commit
+      — it was the project lead tidying the 1.1.8 Result line that I
+      had left filled-in but uncommitted; `8f968e6` rebased cleanly on
+      top.
+- [ ] **1.1B.5 [AI]** Push `origin/main` per user's "Add, commit, and
+      PUSH" instruction. Retroactive entry — the push action was not
+      part of the original 1.1B plan; added now per the
+      checklist-is-the-contract rule.
+      *Result:* Push attempted 2026-05-24, failed at HTTPS
+      authentication: `fatal: could not read Username for 'https://github.com':
+      No such device or address`. The Claude Code environment has no
+      credential helper / no terminal to prompt for credentials.
+      Remote is configured as `https://github.com/lentulus/ColonyModels.git`.
+      `8f968e6` is committed locally, working tree clean, 1 commit
+      ahead of `origin/main`. **Project lead to push from a shell
+      with cached credentials** (the user's normal terminal has worked
+      for past pushes — `2828efe`, `94af448` made it to origin).
 
 ### 1.2 Implementation
 
