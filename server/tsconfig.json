@@ -5,7 +5,11 @@
     "moduleResolution": "NodeNext",
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@colonymodels/shared": ["../shared/src/index.ts"]
+    }
   },
   "include": ["src/**/*"]
 }

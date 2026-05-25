@@ -367,7 +367,7 @@ begins. Saved as durable feedback in the
       file/path identifier was not renamed per option 1). Final grep
       for old patterns came back clean except inside this very 1.1B
       description (intentional — meta-text about the rule).
-- [ ] **1.1B.2 [AI]** Pre-commit triage; post proposed `docs:` commit
+- [x] **1.1B.2 [AI]** Pre-commit triage; post proposed `docs:` commit
       message.
       *Result:* —
 - [x] **1.1B.3 [HUMAN]** Approve the `docs:` commit.
@@ -384,58 +384,544 @@ begins. Saved as durable feedback in the
       — it was the project lead tidying the 1.1.8 Result line that I
       had left filled-in but uncommitted; `8f968e6` rebased cleanly on
       top.
-- [ ] **1.1B.5 [AI]** Push `origin/main` per user's "Add, commit, and
+- [x] **1.1B.5 [AI]** Push `origin/main` per user's "Add, commit, and
       PUSH" instruction. Retroactive entry — the push action was not
       part of the original 1.1B plan; added now per the
       checklist-is-the-contract rule.
-      *Result:* Push attempted 2026-05-24, failed at HTTPS
-      authentication: `fatal: could not read Username for 'https://github.com':
-      No such device or address`. The Claude Code environment has no
-      credential helper / no terminal to prompt for credentials.
-      Remote is configured as `https://github.com/lentulus/ColonyModels.git`.
-      `8f968e6` is committed locally, working tree clean, 1 commit
-      ahead of `origin/main`. **Project lead to push from a shell
-      with cached credentials** (the user's normal terminal has worked
-      for past pushes — `2828efe`, `94af448` made it to origin).
+      *Result:* Push attempted 2026-05-24 by Claude, failed at HTTPS
+      authentication (no credential helper in this env). Project lead
+      pushed `8f968e6` from their normal shell between 2026-05-24 and
+      2026-05-25; `git status` at the start of Slice 1.3.1 reported
+      "up to date with origin/main", confirming `8f968e6` reached
+      origin.
 
 ### 1.2 Implementation
 
-- [ ] **1.2.1.a [AI]** Switch `shared/package.json` `main` → `exports`
+- [x] **1.2.1.a [AI]** Switch `shared/package.json` `main` → `exports`
       with `./src/index.ts` (resolves Slice 0 retro action item #2).
-      *Result:* —
-- [ ] **1.2.1.b [AI]** Add TS path mapping for `@colonymodels/shared`
+      *Result:* Done 2026-05-25. `shared/package.json` now exposes
+      `exports: { ".": { "types": "./src/index.ts", "default":
+      "./src/index.ts" } }`; old `main` and `types` fields removed.
+      The conditional form lets both Bundler (client) and NodeNext
+      (server) resolutions hit the TypeScript source directly; no
+      build step needed for dev/test.
+- [x] **1.2.1.b [AI]** Add TS path mapping for `@colonymodels/shared`
       in client + server tsconfigs (resolves Slice 0 retro action item #3).
-      *Result:* —
-- [ ] **1.2.1.c [AI]** Define shared types (`StateC`, `ParamsC`, `Run`,
+      *Result:* Done 2026-05-25. Both `client/tsconfig.json` and
+      `server/tsconfig.json` now have `baseUrl: "."` plus
+      `paths: { "@colonymodels/shared": ["../shared/src/index.ts"] }`.
+      Belt-and-suspenders with the package.json `exports`; ensures
+      TypeScript compile-time resolution under both Bundler and
+      NodeNext.
+- [x] **1.2.1.c [AI]** Define shared types (`StateC`, `ParamsC`, `Run`,
       `Event`, `Snapshot`, `ModelKind`) in `shared/src/`.
-      *Result:* —
-- [ ] **1.2.2 [AI]** Implement `client/src/sim/model.ts` exporting `rhsC`.
+      *Result:* Done 2026-05-25. `shared/src/index.ts` now exports
+      `RunId`, `ModelKind`, `ParamsC`, `StateC`, `Run`, `Event`,
+      `Snapshot` per Phase1Design §3 (verbatim shape, comments
+      preserved). `Event` is a discriminated union over `param-set` /
+      `state-poke` / `stop`. The placeholder `export {};` was replaced.
+- [x] **1.2.2 [AI]** Implement `client/src/sim/model.ts` exporting `rhsC`.
       Add `// TODO: supply` per §6.7.
-      *Result:* —
-- [ ] **1.2.3 [AI]** Implement `client/src/sim/integrator.ts` exporting
+      *Result:* Done 2026-05-25. `rhsC(s, p): StateC` implements
+      Turchin Eq 7.4 verbatim from §4 — `kS = 1 + c·S/(s0+S)`,
+      `production = N·(1 - N/kS)`, returns `{N: r·production,
+      S: production - β·N}`. The `// TODO: supply` 1-line marker per
+      §6.7 sits on the S equation, naming the future
+      `+ resupplyRate` extension hook.
+- [x] **1.2.3.a [AI]** Implement `client/src/sim/integrator.ts` exporting
       `rk4Step` and `advanceTick`, with `N ≥ 0` clamp inside the step and
-      `S ≥ 0` reset around it.
-      *Result:* —
-- [ ] **1.2.4 [AI]** Replace `client/src/App.tsx` R3F canvas with a
+      `S ≥ 0` reset around it. Uses the generic
+      `rk4Step<S>(s, dt, rhs)` signature from [Decision 0004](adr/0004-generic-rk4-integrator.md).
+      *Result:* Done 2026-05-25. Signature realized as
+      `rk4Step<S extends StateC>(s: S, dt: number, rhs: (s: S) => S): S`
+      with three private helpers (`addScaled`, `combine`,
+      `clampNonNeg`) also generic over `S extends StateC` — they
+      spread the input so subtype fields survive. `clampNonNeg` only
+      clamps `N` (S manual-reset is intentionally outside). `advanceTick`
+      is StateC-typed; binds `rhsC` via closure
+      `(st) => rhsC(st, p)` inside the loop; resets `S = 0` between
+      `rk4Step` calls if it went negative. Total: ~50 lines.
+- [x] **1.2.3.b [AI]** Rewrite `client/src/sim/logistic.analytic.test.ts`
+      (the Slice 0 anchor 0.2.1) to use the new generic `rk4Step(state,
+      dt, rhs)` signature with `rhs = (s) => rhsC(s, params)`. Replace
+      the local `StateC` / `ParamsC` declarations with imports from
+      `@colonymodels/shared`. This step is mandated by
+      [Decision 0004](adr/0004-generic-rk4-integrator.md) and is a
+      prerequisite of 1.2.5's pass criterion. Added as a numbered step
+      per the checklist-is-the-contract rule.
+      *Result:* Done 2026-05-25. Local `type StateC` / `type ParamsC`
+      removed in favor of `import type { StateC, ParamsC } from
+      "@colonymodels/shared"`. Test body now binds `rhsC` via closure
+      `const rhs = (s: StateC): StateC => rhsC(s, params)` and calls
+      `rk4Step(state, dt, rhs)` per the new signature. The closed-form
+      sigmoid assertions and 1e-6 tolerance are unchanged. Header
+      comment updated to reflect the rewrite + Decision 0004 reference.
+- [x] **1.2.4 [AI]** Replace `client/src/App.tsx` R3F canvas with a
       hardcoded 200-yr run using §17 defaults, rendered as a single
       `recharts <LineChart>` with N and S series. Install `recharts`.
-      *Result:* —
-- [ ] **1.2.5 [AI]** Run `npm test`; confirm Slice 1 tests green AND
+      *Result:* Done 2026-05-25. `npm install --workspace client
+      recharts` added 37 packages (`npm audit` still flags the 2
+      moderate transitive vulns from R-013 — no change). App.tsx
+      rewritten: `useMemo`-cached 201-point series (year 0 → 200) from
+      `advanceTick` driven by §17 blank-run defaults; rendered as a
+      single full-viewport `<LineChart>` with N (blue) and S (orange)
+      lines, `CartesianGrid`, `XAxis` (years), `YAxis`, `Tooltip`,
+      `Legend`. Header copy notes the slice context (no replay yet).
+      `isAnimationActive={false}` so the deterministic trace renders
+      immediately. R3F dependencies untouched in `package.json` —
+      cleanup deferred (no checklist step for that yet).
+- [x] **1.2.5 [AI]** Run `npm test`; confirm Slice 1 tests green AND
       Slice 0 `logistic.analytic.test.ts` green. Turchin anchor still red
       (expected).
-      *Result:* —
+      *Result:* Ran 2026-05-25. **Client:** 4 test files; 3 passed
+      (`logistic.analytic.test.ts`, `model.test.ts`,
+      `integrator.test.ts`) = 8 tests green; 1 failed
+      (`turchin.cycle.test.ts`) at `Cannot find module './replay'` —
+      expected red until Slice 2. **Server:** 1 file fails at
+      `Cannot find module '../app'` — expected red until Slice 3.
+      **Shared:** still "No test files found" (1.1.1 skip);
+      shared workspace exits 1 same as before. All four green-criteria
+      assertions hold: (a) Slice 1 model + integrator tests green; (b)
+      Slice 0 logistic anchor green (post-1.2.3.b rewrite); (c)
+      Turchin anchor still red for the right reason; (d) runs-roundtrip
+      still red for the right reason. Next gate: 1.3.1 ready-for-review
+      summary, then 1.3.2 [HUMAN] read the diff.
 
 ### 1.3 Review
 
-- [ ] **1.3.1 [AI]** Post **ready-for-review summary**: changed files,
+- [x] **1.3.1 [AI]** Post **ready-for-review summary**: changed files,
       test output (green count, remaining reds = Turchin anchor + HTTP
       skeleton), what to look at first.
-      *Result:* —
-- [ ] **1.3.2 [HUMAN]** Read the diff.
-      *Result:* —
+      *Result:* Posted 2026-05-25 in chat. Working-tree diff vs.
+      `8f968e6`: 9 modified + 2 new = 11 files, +626/−49.
+      Green tests: 8 of 8 expected (model 3, integrator 4, logistic
+      anchor 1). Remaining reds (both fail-at-import for the right
+      reason): `turchin.cycle.test.ts` (missing `./replay` until
+      Slice 2), `runs.roundtrip.test.ts` (missing `../app` until
+      Slice 3). Reviewer ordering recommended in the summary:
+      (1) shared types contract, (2) model.ts arithmetic, (3)
+      integrator.ts algorithm + helpers, (4) logistic anchor rewrite
+      diff, (5) App.tsx + recharts UI, (6) tsconfig + package.json
+      plumbing.
+- [x] **1.3.2 [HUMAN]** Read the diff.
+      *Result:* Marked complete 2026-05-25 via "mark 1.3.2 complete".
+      User advanced without flagging issues — implicit accept of the
+      Slice 1.2 working-tree diff (+626/−49, 11 files) presented in
+      the 1.3.1 ready-for-review summary.
 - [ ] **1.3.3 [HUMAN]** Run the client (`npm run dev`), visually confirm
       the plot.
+      *Result:* First viewing 2026-05-25 by project lead — **not
+      accepted**; three defects logged. Gates 1.3.4. Tick once defects
+      are remediated and re-viewed.
+
+      **Defects (D-1.3.3-1, D-1.3.3-2, D-1.3.3-3):**
+
+      1. **People-count vs scaled units missing.** Y-axis currently
+         shows raw scaled values (e.g. `N=0.2`). Phase1Design §8.3 says
+         the plot should multiply by `run.peoplePerUnit` (default
+         1000) so the axis reads in people, with the tooltip showing
+         both the people-count *and* the underlying scaled value. May
+         also need either a unit toggle or a clearly-labelled axis.
+         **App.tsx never reads peoplePerUnit.**
+      2. **Bottom area smooshed.** The XAxis label ("t (years since
+         founding)") is positioned `insideBottom` and collides with
+         tick labels + the Legend. Needs more bottom margin, or move
+         the axis label outside the chart area, or move the Legend.
+      3. **Caption under title illegible.** The grey (#555) paragraph
+         is hard to read against white. Either darken or drop — it is
+         dev-context noise, not user-facing content.
+
+      Remediations chosen 2026-05-25: option A on all three (inline
+      fix, not deferred to Slice 6 triage). Numbered fix sub-steps
+      below per the checklist-is-the-contract rule. 1.3.3 stays
+      unticked until 1.3.3.fix-4 lands.
+
+- [x] **1.3.3.fix-1 [AI]** Fix D-1.3.3-1 — implement §8.3 display
+      semantics. Multiply N and S by a local `PEOPLE_PER_UNIT = 1000`
+      constant for the y-axis values; expose both people-count and
+      scaled-value fields in the chart data; supply a custom
+      `<Tooltip>` that renders each line as
+      `200 settlers (scaled 0.20)` / `300 person-yr (scaled 0.30)`.
+      Update Y-axis + legend labels to communicate units in plain
+      English.
+      *Result:* Done 2026-05-25 in `client/src/App.tsx`. Added
+      `PEOPLE_PER_UNIT = 1000`. `SamplePoint` now carries
+      `{t, N_people, N_scaled, S_people, S_scaled}`. Custom
+      `<CustomTooltip>` renders `"N: 200 settlers (scaled 0.2000)"` /
+      `"S: 300 person-yr (scaled 0.3000)"` with line-coloured rows
+      and a styled wrapper. Line `dataKey`s now point at
+      `N_people` / `S_people`. Legend labels: `"N (settlers)"` /
+      `"S (person-years of production)"`. Y-axis label
+      `"people / person-years of production"` (rotated −90°,
+      `insideLeft`). Matches §8.3 verbatim.
+- [x] **1.3.3.fix-2 [AI]** Fix D-1.3.3-2 — relieve bottom-area
+      crowding. Move the XAxis label from `position: "insideBottom"`
+      to `position: "bottom"` (outside the chart area, below ticks);
+      raise the chart's `bottom` margin enough to fit ticks + label
+      + legend (target ~60px from 24px).
+      *Result:* Done 2026-05-25. XAxis label position changed to
+      `"bottom"` with `offset: 18` (now sits outside the chart, below
+      tick labels). `LineChart` `margin.bottom` raised from 24 → 60.
+      `Legend` moved to top (`verticalAlign="top" height={28}`) so
+      it no longer competes with the axis label for bottom space.
+- [x] **1.3.3.fix-3 [AI]** Fix D-1.3.3-3 — delete the grey caption
+      `<p>` under the title. Header `<h2>` stays. Dev/slice-context
+      lives in checklist + retro docs, not in the user-facing UI.
+      *Result:* Done 2026-05-25. The `<p style={{ color: "#555", ... }}>`
+      block is gone from App.tsx; only the `<h2>` title remains above
+      the chart. `<h2>` `margin-bottom` raised 6 → 12 to fill the gap
+      gracefully.
+- [x] **1.3.3.fix-4 [HUMAN]** Re-view in browser (`npm run dev`).
+      If accepted, tick 1.3.3 above. If new defects surface,
+      re-log under D-1.3.3-N and we iterate.
+      *Result:* Re-viewed 2026-05-25. First-round fixes accepted
+      ("better."). Four new defects logged in this iteration:
+
+      - **D-1.3.3-4** — Rotated Y-axis label overlaps the `<h2>`
+        title area.
+      - **D-1.3.3-5** — Y-axis tick numbers shown in full (e.g.
+        `80000`); user wants compact form (`80k`, `1.2M`).
+      - **D-1.3.3-6** — S scale dominates the chart, hiding the
+        shape of the N curve. Need toggle controls so user can
+        view either line in isolation with axis auto-rescale.
+      - **D-1.3.3-7** — Need an "Indexed" display mode where each
+        line shows value(t) / value(t0) — a multiplier rather than
+        absolute. Edge case: S(0) = 0 with §17 defaults makes S
+        unindexable.
+
+      Remediations chosen 2026-05-25 ("go with those choices"):
+      option A for D-4/5/6 (drop label / compact formatter / toggle
+      buttons + clickable legend) and the proposed indexed-toggle
+      with auto-hide-S-when-S0=0 for D-7. Numbered fix sub-steps
+      below.
+- [x] **1.3.3.fix-5 [AI]** Fix D-1.3.3-4 — drop the rotated Y-axis
+      label. Legend already communicates which line is which; the
+      label was redundant.
+      *Result:* Done 2026-05-25. `<YAxis>` no longer carries a
+      `label` prop. The chart title `<h2>` no longer competes for
+      the upper-left margin region.
+- [x] **1.3.3.fix-6 [AI]** Fix D-1.3.3-5 — supply a `tickFormatter`
+      on YAxis. `<1k` → integer; `1k ≤ n < 1M` → `80k`; `≥ 1M` →
+      `1.2M`. Tooltip keeps the full number with thousand-
+      separators for precision.
+      *Result:* Done 2026-05-25. Helper `compactNumber(v)` returns
+      `200`, `80k`, `1.2M` per the threshold rule; trailing `.0`
+      stripped. Wired onto `<YAxis tickFormatter={tickFormatter} />`
+      (where `tickFormatter` swaps to the indexed-mode formatter
+      when indexed mode is active — see fix-8). Tooltip uses
+      `.toLocaleString()` for the full count.
+- [x] **1.3.3.fix-7 [AI]** Fix D-1.3.3-6 — add per-line toggle
+      buttons above the chart for N and S. Also make the Legend
+      clickable as a free bonus. Recharts auto-rescales Y to the
+      visible series.
+      *Result:* Done 2026-05-25. Two coloured pill buttons above
+      the chart (`N (settlers) on/off`, `S (person-yr) on/off`)
+      using `aria-pressed` for accessibility and the line colour
+      for filled/outlined state. Each button toggles a `useState`
+      flag; flag drives the corresponding `<Line hide={!show*} />`
+      so recharts auto-rescales Y. `<Legend onClick>` calls the
+      same toggles when a legend entry is clicked; `cursor:
+      pointer` hint added.
+- [x] **1.3.3.fix-8 [AI]** Fix D-1.3.3-7 — add an "Indexed" toggle
+      button. When ON: lines display as `value(t) / value(t0)`;
+      Y-axis tick formatter switches to `1×`, `1.5×`, etc.;
+      tooltip retains scaled + absolute alongside the multiplier.
+      Edge case: when `S(0) = 0` (true in §17 default Slice 1
+      run), S line auto-hides in indexed mode and a small note
+      `"(S can't be indexed when S(0)=0)"` appears next to the
+      controls. S toggle button stays clickable; its effect is
+      overridden by the indexed+S0=0 guard.
+      *Result:* Done 2026-05-25. Third toggle button (slate
+      grey) sits separated from the per-line toggles. New
+      `indexedTick(v)` formatter outputs `"1×"`, `"1.5×"`, `"10×"`
+      (1 decimal for `< 10`, otherwise integer). Data
+      `useMemo([baseData, indexed, N0, S0, sIndexable])` derives
+      `N_y = indexed ? N_scaled/N0 : N_people` (similar for S,
+      returning `null` when `indexed && !sIndexable`). The
+      `sIndexable = S0 > 0` guard threads through both the tooltip
+      and `<Line hide>` so S vanishes cleanly when unindexable.
+      The grey hint string renders only when `indexed &&
+      !sIndexable`. Typecheck clean (only expected Slice 2 anchor
+      red remains).
+- [ ] **1.3.3.fix-9 [HUMAN]** Re-view in browser (`npm run dev`).
+      If accepted, tick 1.3.3 above. If new defects surface,
+      re-log under D-1.3.3-N and we iterate.
+      *Result:* Reviewed 2026-05-25; one new defect logged.
+
+      - **D-1.3.3-8** — Current indexed equation
+        `indexed_X(t) = X(t) / X(0)` blanks S entirely when
+        `S(0) = 0` (§17 default). Annoying — the S shape vs N
+        shape comparison is the *whole point* of the indexed
+        mode. User prefers: index each series against its own
+        first non-zero sample, i.e.
+        `indexed_X(t) = X(t) / X(t*_X)` where
+        `t*_X = min{ t : X(t) > 0 }`; the series is plotted
+        only from `t*_X` onward. Practical effect for §17:
+        N indexes from t=0, S indexes from t≈1.
+
+      Remediation chosen 2026-05-25 ("log it and execute") —
+      single fix-10 below.
+- [x] **1.3.3.fix-10 [AI]** Fix D-1.3.3-8 — refine indexed
+      semantics. Compute `t*_X` per series (smallest sample index
+      where the scaled value is `> 0`). In indexed mode, set
+      `X_y(t) = X(t)/X(t*_X)` for `t ≥ t*_X` and `null` otherwise;
+      recharts renders a gap before `t*_X` so the line visually
+      starts at its first indexable point. Drop the `sIndexable`
+      guard and the `(S can't be indexed when S(0)=0)` grey hint
+      — neither is needed once per-series indexing lands. Tooltip
+      silently omits the S row at `t < t*_S` (no
+      "not-yet-indexable" placeholder; less noise).
+      *Result:* Done 2026-05-25 in [App.tsx](../../client/src/App.tsx).
+      New `indices` useMemo finds `iN` and `iS` (first sample index
+      where each series' scaled value is `> 0`). Data useMemo now
+      branches: non-indexed mode uses people-count straight; indexed
+      mode divides each series by its respective reference value
+      (`baseData[iN].N_scaled` / `baseData[iS].S_scaled`) and emits
+      `null` for samples before the reference index. `DisplayPoint`
+      widened: `N_y` is `number | null`; recharts skips null
+      samples and renders the line starting at the first non-null
+      point. The `sIndexable` constant, `effectiveShowS` derived
+      flag, and the grey hint span are all gone. Tooltip uses
+      `p.{N,S}_y !== null` to decide whether to show each row in
+      indexed mode. Typecheck clean (only expected Slice 2 anchor
+      red remains).
+- [ ] **1.3.3.fix-11 [HUMAN]** Re-view in browser (`npm run dev`).
+      If accepted, tick 1.3.3 above. If new defects surface,
+      re-log under D-1.3.3-N and we iterate.
       *Result:* —
+
+**Feature requests during 1.3.3 review (2026-05-25)** — user asked for
+two additional UI capabilities to make the chart usable for the §17
+math review. These are Slice 5 controls landing early; some of the
+code will be replaced when Slice 5's real `Controls.tsx` ships
+(acknowledged scope-creep, accepted in chat).
+
+- **F-1.3.3-1** — extend the hardcoded run horizon from 200 → 1000
+  years (so a full secular cycle is visible) and add a display-only
+  Years/Decades toggle for the X axis (integrator resolution stays at
+  daily sub-steps; nothing changes in the math layer).
+- **F-1.3.3-2** — pan/zoom along the X axis via recharts' built-in
+  `<Brush>` component (draggable mini-timeline below the chart).
+
+- [x] **1.3.3.fix-12 [AI]** Implement F-1.3.3-1 — horizon 200→1000,
+      Years/Decades toggle. Bump `HORIZON_YEARS`; update title copy.
+      Add a `timeScale` `useState` (`"years"` | `"decades"`, default
+      `"years"`). Add a fourth toggle button to the controls row,
+      pattern-consistent with the others (`Decades on/off`). XAxis
+      `tickFormatter` divides by 10 in decades mode; XAxis `label`
+      switches between `"t (years since founding)"` and `"t (decades
+      since founding)"`. Tooltip header switches between `"t = 500
+      yr"` and `"t = 50 dec"`. **Data array unchanged** — `t` field
+      stays in years; only display layer is affected.
+      *Result:* Done 2026-05-25. `HORIZON_YEARS` bumped 200 → 1000;
+      title uses `{HORIZON_YEARS}` interpolation so it auto-updates
+      to "1000-year hardcoded run". `TimeScale` type added
+      (`"years" | "decades"`); `useState<TimeScale>("years")`. New
+      "Decades on/off" button matches the existing toggle styling
+      (slate grey). `makeXTickFormatter(scale)` factory returns a
+      formatter that divides by 10 in decades mode and strips
+      trailing `.0`; wired onto both `<XAxis>` and `<Brush>` via the
+      memoized `xTickFormatter`. `xAxisLabel` derived from
+      `timeScale` (Years/Decades since founding). Tooltip header
+      uses a shared `formatTimeLabel(t, scale)` helper —
+      `t = 500 yr` or `t = 50 dec` (1 decimal for non-integer
+      decade values, 0 decimals when integer). Data array `t`
+      stays in years; integrator untouched.
+- [x] **1.3.3.fix-13 [AI]** Implement F-1.3.3-2 — `<Brush>` for
+      pan/zoom. One `<Brush dataKey="t" height={30} stroke="#888"
+      tickFormatter={xTickFormatter} />` line inside the
+      `<LineChart>` after the `<Line>` elements. Default behavior
+      (initial window = full range). Brush honours the
+      Years/Decades tick formatter automatically (shared function).
+      *Result:* Done 2026-05-25. `Brush` imported from `recharts`;
+      inserted at the bottom of `<LineChart>` with
+      `dataKey="t" height={28} stroke="#888"
+      tickFormatter={xTickFormatter} travellerWidth={8}`. No
+      explicit `startIndex` / `endIndex` so the initial window is
+      the full 0–1000 yr range (user-discoverable narrowing by
+      dragging the handles). Reuses the same `xTickFormatter` as
+      the XAxis so brush ticks honour Years/Decades automatically.
+      Typecheck clean.
+- [ ] **1.3.3.fix-14 [HUMAN]** Re-view in browser (`npm run dev`).
+      Test both: Years/Decades toggle relabels X-axis + brush ticks;
+      brush handles narrow + pan the visible range; main chart
+      auto-rescales. If accepted, tick 1.3.3 above. If new
+      defects/requests surface, re-log and we iterate.
+      *Result:* Re-viewed 2026-05-25. Positive: brush UI works
+      well. Math interpretation of curves deferred to 1.3.4 once
+      the interface is more complete. Three new defects logged:
+
+      - **D-1.3.3-9** — Decades mode produces decimal tick labels
+        (e.g. `17.5 dec`) at narrow brush zooms. Recharts
+        auto-picks tick values from the continuous range; the
+        `tickFormatter` divides by 10. When picks land at non-
+        decade boundaries (e.g. year 175 → 17.5 dec), the label
+        is non-integer.
+      - **D-1.3.3-10** — Y axis "goes mental" when scrolling /
+        panning via brush. Recharts auto-rescales Y to the
+        currently-visible time slice, so Y jumps as the brush
+        moves through high-S vs low-S regions.
+      - **D-1.3.3-11** — Years mode tick spacing doesn't match
+        the prior 0–200 version's "feel" (which had ticks at 0,
+        50, 100, 150, 200). With 0–1000 range the auto-picker
+        lands on 0, 200, 400, …; sparser per-unit-width.
+
+      Remediation chosen 2026-05-25 ("proceed with those
+      changes") — single fix-15 step covering all three (new
+      `t_display` field, explicit integer X ticks per mode,
+      locked Y domain over visible series across full time).
+- [x] **1.3.3.fix-15 [AI]** Fix D-1.3.3-9/10/11 — stabilise X
+      ticks and Y domain.
+      (a) Add `t_display` to display data: `t` in years mode,
+      `t/10` in decades mode. XAxis + Brush switch to
+      `dataKey="t_display"` so the displayed values *are* the
+      values in display units (no double-divide).
+      (b) Compute an explicit `xTicks` array: every 50 years
+      (`[0, 50, …, 1000]`) in years mode; every 1 decade
+      (`[0, 1, …, 100]`) in decades mode. Pass as
+      `<XAxis ticks={xTicks} interval="preserveStartEnd" />` so
+      recharts shows integer-valued labels and auto-thins overlap
+      at wide zooms.
+      (c) Compute `yDomain` from the max of currently-visible
+      series across the full time range (not the visible brush
+      window). Pass as `<YAxis domain={yDomain} />`. Y stays
+      still as the user pans, only rescales when they toggle a
+      series on/off. 5% headroom above max.
+      (d) Tooltip `formatTimeLabel` updated to expect the value
+      in display units (no division needed any more).
+      *Result:* Done 2026-05-25. Refactor:
+      • New helper `toDisplayUnit(t, scale)` (years pass-through,
+        decades divides by 10); `makeXTickFormatter` removed.
+      • `DisplayPoint` widened with `t_display: number`.
+      • Data `useMemo` extracts a local `addDisplay()` to attach
+        `t_display` + `N_y` + `S_y` consistently in both
+        non-indexed and indexed branches; depends on `timeScale`.
+      • `xTicks` useMemo loops `0 → HORIZON_YEARS` in steps of
+        50 yr (years mode) or 10 yr (= 1 decade, decades mode),
+        mapping through `toDisplayUnit`. Years gives 21 ticks,
+        decades 101.
+      • `yDomain` useMemo scans `data` for the max of currently-
+        visible series (gated on `showN` / `showS`); returns
+        `[0, max * 1.05]`. Depends on `data`, `showN`, `showS` —
+        does *not* depend on brush window state.
+      • `<XAxis>`: `dataKey="t_display"`, `type="number"`,
+        `domain=[0, toDisplayUnit(HORIZON_YEARS, scale)]`,
+        `ticks={xTicks}`, `interval="preserveStartEnd"`.
+      • `<YAxis>`: `domain={yDomain}` + `allowDataOverflow` so the
+        pinned domain is honoured even when brush narrows.
+      • `<Brush>`: `dataKey="t_display"`; default ticks (recharts
+        picks integer values from the display-unit data).
+      • Tooltip `formatTimeLabel` simplified — value is already
+        in display units, no division.
+      Typecheck clean.
+- [ ] **1.3.3.fix-16 [HUMAN]** Re-view in browser (`npm run dev`).
+      Confirm: integer-only tick labels in both modes (try
+      brushing narrow); Y axis stays put as you pan; toggling
+      N/S rescales Y as expected. If accepted, tick 1.3.3 above.
+      If new defects/requests surface, re-log and we iterate.
+      *Result:* Re-viewed 2026-05-25. Three new defects logged
+      ("One more crack" — user signalled patience is finite):
+
+      - **D-1.3.3-12** — Curve peak appears at different X
+        positions in years vs decades mode. Y vs X relationship
+        should be invariant in physical years, not pixels —
+        a peak at year 200 in one mode should be at year 200
+        (= 20 dec) in the other.
+      - **D-1.3.3-13** — X-axis tick density too sparse to read
+        precise positions. User wants "multiples of 5" in years
+        mode when every-year is too dense.
+      - **D-1.3.3-14** — Brush "changes the start of the curve
+        rather than the scope of the display" — i.e. brush is
+        culling data instead of zooming the X axis.
+
+      Root-cause analysis: D-12 and D-14 share a root cause —
+      the explicit `domain={[0, max]}` added on XAxis in fix-15
+      is overriding the brush's natural zoom. With fixed domain,
+      brush narrows just filter data; the axis frame stays full
+      and curve positions look inconsistent across modes.
+
+      Remediation chosen 2026-05-25 ("implement those changes")
+      — single fix-17 step covering all three.
+- [x] **1.3.3.fix-17 [AI]** Fix D-1.3.3-12/13/14.
+      (a) Drop the explicit `domain` prop from `<XAxis>`.
+      `type="number"` stays so positions remain proportional to
+      `t_display`; without an enforced domain, recharts
+      auto-scales to the brush-visible data range — brush zooms
+      again. Fixes D-12 + D-14 in one move.
+      (b) Densify `xTicks`: years mode every 5 years (201 ticks);
+      decades mode every 1 decade (101 ticks). Keep
+      `interval="preserveStartEnd"` so recharts thins overlapping
+      labels at wide zooms and reveals finer ticks at narrow
+      zooms. Fixes D-13.
+      (c) `yDomain` locked behavior from fix-15 is unchanged —
+      Y still doesn't bounce on brush.
+      *Result:* Done 2026-05-25. Two surgical edits in
+      [App.tsx](../../client/src/App.tsx):
+      • XAxis `domain={[0, toDisplayUnit(HORIZON_YEARS, timeScale)]}`
+        prop removed; everything else on `<XAxis>` unchanged.
+        With no enforced domain, recharts auto-scales to the
+        brush-visible range, restoring the zoom behavior.
+      • `xTicks` step changed from 50 → 5 in years mode (201
+        candidates instead of 21); decades mode unchanged at
+        every 1 decade (101). `interval="preserveStartEnd"`
+        handles the thinning.
+      `yDomain` (locked over visible series, full data extent,
+      computed independent of brush) is unchanged. Typecheck
+      clean.
+- [x] **1.3.3.fix-18 [HUMAN]** Re-view in browser (`npm run dev`).
+      Confirm: brush handles now zoom (not cull); curve peaks
+      sit at the same physical year regardless of mode; tick
+      density readable at all zoom levels. If accepted, tick
+      1.3.3 above. If new defects/requests surface, re-log; per
+      the "one more crack" comment, consider whether to keep
+      iterating or revert to a simpler chart and defer the
+      remaining tuning to Slice 5.
+      *Result:* Re-viewed 2026-05-25. One new defect; user
+      opting for a fresh Claude session rather than another
+      fix attempt.
+
+      - **D-1.3.3-15** — *"The curve remains identical on the
+        screen when I toggle decades mode."* User reports the
+        Decades toggle produces no visible change in the chart.
+        Two interpretations to investigate fresh-eyes:
+        (a) The X-axis labels and brush ticks ARE supposed to
+        change (years labels like "200, 400" → decades like "20,
+        40"), and the *curve* is supposed to look identical
+        (same physical positions, just relabeled). If the user
+        sees labels unchanged too, that's a real bug — most
+        likely cause is recharts re-using a cached scale or my
+        `t_display` dataKey not re-binding when `timeScale`
+        changes. (b) If only the curve looks unchanged but
+        labels do switch, this is a misunderstanding of what
+        the toggle is supposed to do — labels are the entire
+        point — and the UX needs to communicate that more
+        loudly (header copy, legend hint, animated transition).
+
+      No further fix attempts this session — see fix-19.
+- [x] **1.3.3.fix-19 [AI]** Prepare a handover document for a
+      fresh Claude session. User has signalled drift/fatigue
+      from the 17+ fix-step iteration cycle on the Slice 1.3.3
+      visual review. Rewrite [HANDOVER.md](HANDOVER.md) to
+      reflect current state (Slice 1.2 fully complete, Slice
+      1.3 stuck at visual review with 15 defects across 18
+      attempts); enumerate every D-1.3.3-N defect with current
+      status; document the unstaged working-tree state from
+      Slice 1.2 + 1.3; recommend that the new session pull
+      back to a simpler chart and treat the remaining
+      visual-UI ambition as Slice 5 scope. Single AI step; no
+      double-approval gate (it's documentation).
+      *Result:* Done 2026-05-25. Full rewrite of
+      [HANDOVER.md](HANDOVER.md) (~340 lines): TL;DR for the
+      fresh session, the open D-15 with two interpretations,
+      full defect catalog table (fixed / open / deferred),
+      "simplify and defer to Slice 5" recommendation with the
+      §8.3-aligned simpler chart as the reference target,
+      two-option commit strategy, repo state snapshot (HEAD
+      `899ef24`, 9 modified + 2 untracked, +1330/−62, tests
+      8-green + 2-expected-red), pointers to all working-style
+      memory files. Working-tree changes not staged or
+      committed (the user's choice — see commit-strategy
+      section of HANDOVER.md).
 - [ ] **1.3.4 [HUMAN]** **Math-correctness review** (§11.1): the cycle
       should be *visible* with §17 defaults even though only the integrator
       is wired up (no replay yet, so this is a single straight integration).
