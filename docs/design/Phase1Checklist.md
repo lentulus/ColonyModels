@@ -1428,6 +1428,16 @@ rest of the assertion chain; this is the missing audit. New risk row
 - [ ] **2.3.3 [HUMAN]** Run client; spot-check that the plot still looks
       right (no regressions vs. Slice 1).
       *Result:* —
+- [x] **2.3.3.fix-1 [AI]** Round `N_people` tooltip display to integers in
+      `App.tsx` (people are discrete countable units; `N_scaled` retains
+      full precision for the integration). Scope: **N only** — `S` stays
+      decimal (S is a continuous integral over βN, not a discrete count).
+      Found during 2.3.3 visual review on 2026-05-26.
+      *Result:* `nPeopleDisplay = Math.round(p.N_people).toLocaleString()` extracted and used in both indexed and non-indexed `nLine` variants. `S_people` unchanged. Client 35/35 passing; typecheck + build clean.
+- [x] **2.3.3.fix-1.e [HUMAN]** Review and approve commit.
+      *Result:* Lentulus reviewed and approved (double-approval) 2026-05-26.
+- [x] **2.3.3.fix-1.f [AI]** Commit `fix:` and report hash.
+      *Result:* See `fix: Slice 2.3.3.fix-1 — round N tooltip display to integers` in git log.
 - [ ] **2.3.3a [AI]** Tracking sweep: update
       [Phase1RiskRegister.md](Phase1RiskRegister.md); draft Slice 2 entry
       in [Phase1Retros.md](Phase1Retros.md); fill in

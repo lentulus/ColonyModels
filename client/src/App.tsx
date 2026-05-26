@@ -126,10 +126,13 @@ function CustomTooltip({
   const showNRow = showN && (!indexed || p.N_y !== null);
   const showSRow = showS && (!indexed || p.S_y !== null);
 
+  // People are discrete: round N for display. Full precision is kept
+  // in N_scaled for the integration.
+  const nPeopleDisplay = Math.round(p.N_people).toLocaleString();
   const nLine =
     indexed && p.N_y !== null
-      ? `${p.N_y.toFixed(3)}× (${p.N_people.toLocaleString()} settlers; scaled ${p.N_scaled.toFixed(4)})`
-      : `${p.N_people.toLocaleString()} settlers (scaled ${p.N_scaled.toFixed(4)})`;
+      ? `${p.N_y.toFixed(3)}× (${nPeopleDisplay} settlers; scaled ${p.N_scaled.toFixed(4)})`
+      : `${nPeopleDisplay} settlers (scaled ${p.N_scaled.toFixed(4)})`;
 
   const sLine =
     indexed && p.S_y !== null
