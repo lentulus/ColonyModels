@@ -10,16 +10,28 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { ParamsC, StateC } from "@colonymodels/shared";
-import { advanceTick } from "./sim/integrator";
+import type { Event, Run } from "@colonymodels/shared";
+import { replayTo } from "./sim/replay";
 
-// Phase1Design §17 blank-run defaults.
-const BLANK_PARAMS: ParamsC = { r: 0.02, beta: 0.25, c: 3, s0: 10 };
-const BLANK_INITIAL: StateC = { N: 0.5, S: 0 };
+// Phase1Design §17 blank-run defaults (Turchin Fig 7.1 / §7.2.1 verbatim:
+// r=0.02, β=0.25, c=3, s₀=10, N₀=k₀/2=0.5, S₀=0). `tickSeconds` here is
+// yearly to keep the demo plot at 1001 points; the Turchin cycle anchor
+// uses monthly tickSeconds against the same `replayTo`, so test and demo
+// share the code path while choosing per-context plot resolution.
+const SECS_PER_YEAR = 31_556_952;
 const HORIZON_YEARS = 1000; // notional placeholder — F-1.3.3-1
-const DT_INTEG_YEARS = 1 / 365.25;
-const TICK_YEARS = 1; // integration resolution unchanged; time-scale is display-only
 const PEOPLE_PER_UNIT = 1000; // §17 default; §8.3 display semantics.
+const BLANK_RUN: Run = {
+  id: "demo",
+  name: "demo",
+  modelKind: "C-basic-demfisc",
+  t0Epoch: 0,
+  tickSeconds: SECS_PER_YEAR,
+  peoplePerUnit: PEOPLE_PER_UNIT,
+  initialState: { N: 0.5, S: 0 },
+  initialParams: { r: 0.02, beta: 0.25, c: 3, s0: 10 },
+  createdAt: 0,
+};
 
 const N_COLOR = "#5aa0ff";
 const S_COLOR = "#e07c2c";
@@ -33,27 +45,18 @@ type SamplePoint = {
 };
 
 function integrateHardcodedRun(): SamplePoint[] {
-  const out: SamplePoint[] = [
-    {
-      t: 0,
-      N_people: BLANK_INITIAL.N * PEOPLE_PER_UNIT,
-      N_scaled: BLANK_INITIAL.N,
-      S_people: BLANK_INITIAL.S * PEOPLE_PER_UNIT,
-      S_scaled: BLANK_INITIAL.S,
-    },
-  ];
-  let cur: StateC = BLANK_INITIAL;
-  for (let year = 1; year <= HORIZON_YEARS; year++) {
-    cur = advanceTick(cur, BLANK_PARAMS, TICK_YEARS, DT_INTEG_YEARS);
-    out.push({
-      t: year,
-      N_people: cur.N * PEOPLE_PER_UNIT,
-      N_scaled: cur.N,
-      S_people: cur.S * PEOPLE_PER_UNIT,
-      S_scaled: cur.S,
-    });
-  }
-  return out;
+  const targetEpoch = BLANK_RUN.t0Epoch + HORIZON_YEARS * SECS_PER_YEAR;
+  const snapshots = replayTo(BLANK_RUN, [] as Event[], targetEpoch);
+  return snapshots.map((snap) => {
+    const t = (snap.tEpoch - BLANK_RUN.t0Epoch) / SECS_PER_YEAR;
+    return {
+      t,
+      N_people: snap.state.N * PEOPLE_PER_UNIT,
+      N_scaled: snap.state.N,
+      S_people: snap.state.S * PEOPLE_PER_UNIT,
+      S_scaled: snap.state.S,
+    };
+  });
 }
 
 function compactNumber(v: number): string {

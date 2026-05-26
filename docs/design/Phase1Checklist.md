@@ -1412,12 +1412,12 @@ rest of the assertion chain; this is the missing audit. New risk row
 - [x] **2.2.1 [AI]** Implement `client/src/sim/replay.ts` per §6.1-6.4
       (`paramsAt`, `replayTo`, branching helpers).
       *Result:* 75-line implementation: `paramsAt` walks sorted events (boundary inclusive); `replayTo` splits ticks around event boundaries so param changes apply exactly at event time. State-poke spreads onto state; `stop` is a no-op (UI-loop signal per §8.2). Branching left to caller per §6.4 — array primitives clearer than wrapping a one-liner. With this in place: 35/35 client tests green (6 replay sub-cases + Turchin anchor + 28 existing); R-014 + R-016 fully closed.
-- [ ] **2.2.2 [AI]** Update `App.tsx` to drive the plot via `replayTo` so
+- [x] **2.2.2 [AI]** Update `App.tsx` to drive the plot via `replayTo` so
       the Turchin anchor exercises the same code path as the demo page.
-      *Result:* —
-- [ ] **2.2.3 [AI]** Run `npm test`; confirm Slice 2 tests + Turchin
+      *Result:* `integrateHardcodedRun()` now calls `replayTo(BLANK_RUN, [], target)`. Demo uses yearly tickSeconds (1001 points, no perf regression); test uses monthly tickSeconds — same code path, different per-context resolution. Data shape unchanged; daily sub-step grid identical to pre-change. Visual verification deferred to 2.3.3 [HUMAN] gate.
+- [x] **2.2.3 [AI]** Run `npm test`; confirm Slice 2 tests + Turchin
       anchor green. Remaining red: `runs.roundtrip.test.ts` skeleton only.
-      *Result:* —
+      *Result:* Client: 35/35 passing (6 replay sub-cases + Turchin anchor + 28 existing) across 6 test files. Server: `runs.roundtrip.test.ts` red at import as expected (Slice 3 dependency on `../app.js`). Shared: no test files (1.1.1 documented skip). Typecheck + build clean across all 3 workspaces.
 
 ### 2.3 Review
 
