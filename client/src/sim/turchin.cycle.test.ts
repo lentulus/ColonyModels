@@ -5,20 +5,30 @@ import { replayTo } from "./replay";
 
 /**
  * Slice 0 regression anchor — §17 BLANK_RUN defaults produce Turchin's
- * secular cycle in the expected period band.
+ * deterministic single excursion.
  *
  * Verifies the full integrator + replay pipeline against Turchin's
  * cited behaviour: with r = 0.02 yr⁻¹, β = 0.25, c = 3, s₀ = 10,
- * N₀ = 0.5, S₀ = 0 the model runs one boom-and-bust excursion of
+ * N₀ = 0.5, S₀ = 0 the model runs **one** boom-and-bust excursion of
  * ~2-3 centuries (Historical Dynamics §7.2.1 prose p.123, Fig 7.1
- * caption p.124). With §17 at Turchin verbatim the actual N-peak
- * lands at t ≈ 227 yr; the [180, 280] yr window matches the bound
- * derived in Phase1MathDerivations §3.5/§5.
+ * caption p.124), then settles to the stateless equilibrium
+ * (N = k₀ = 1, S = 0). Recurring cycles (Turchin Fig 7.2) require
+ * stochastic forcing, which the Phase 1 deterministic model does not
+ * implement.
  *
- * Loose tolerances on purpose — the goal is "secular cycle appears,"
+ * Assertions (Slice 2.2.0 amendment shape):
+ *   1. Exactly one N-peak in the horizon, landing in [180, 280] yr
+ *      (peak at t ≈ 227 yr per Phase1MathDerivations §3.5/§5).
+ *   2. By t = 500 yr (well past the peak), N is within 5% of k₀ = 1.
+ *   3. Final 100 yr non-increasing — asymptotic settling, no late
+ *      oscillation (consistent with the single-excursion derivation
+ *      in Phase1MathDerivations §3.3).
+ *   4. Sanity: 0 < final N ≤ 1.5 (no extinction, no runaway).
+ *
+ * Loose tolerances on purpose — the goal is "single excursion + settle,"
  * not "matches Turchin's figure to three decimal places."
  *
- * Status (Slice 2.1.0 amendment, 2026-05-26): expected to fail at
+ * Status (Slice 2.2.0 amendment, 2026-05-26): expected to fail at
  * *import* — the replay module does not yet exist. Turns green at
  * Slice 2.2.3 when `replayTo` lands.
  */
@@ -57,8 +67,8 @@ const BLANK_RUN: Run = {
   createdAt: 0,
 };
 
-describe("turchin cycle anchor — §17 defaults produce a secular cycle", () => {
-  it("first peak in [180, 280] yr; next trough at least 100 yr later; no blow-up", () => {
+describe("turchin cycle anchor — §17 defaults produce a single deterministic excursion", () => {
+  it("exactly 1 peak in [180, 280] yr; N settles within 5% of k₀ by 500 yr; tail non-increasing; no blow-up", () => {
     const horizonYears = 600;
     const targetEpoch = BLANK_RUN.t0Epoch + horizonYears * SECS_PER_YEAR;
     const snapshots: Snapshot[] = replayTo(BLANK_RUN, [] as Event[], targetEpoch);
@@ -97,16 +107,37 @@ describe("turchin cycle anchor — §17 defaults produce a secular cycle", () =>
     ).toBeGreaterThanOrEqual(180);
     expect(firstPeak!.tYears).toBeLessThanOrEqual(280);
 
-    const firstPeakIdx = extrema.indexOf(firstPeak!);
-    const nextTrough = extrema
-      .slice(firstPeakIdx + 1)
-      .find((e) => e.kind === "trough");
-    expect(nextTrough, "no local minimum after the first peak").toBeDefined();
-    const period = nextTrough!.tYears - firstPeak!.tYears;
+    // Single-excursion behavior per Phase1Design §17: exactly one local N-peak
+    // in the horizon. Recurring cycles (Turchin Fig 7.2) require stochastic
+    // forcing, which the deterministic model does not exhibit — Turchin p.123:
+    // "in a deterministic world, once the state collapses, it cannot arise
+    // again" (also Phase1MathDerivations §3.3).
+    const peakCount = extrema.filter((e) => e.kind === "peak").length;
     expect(
-      period,
-      `peak → trough interval ${period.toFixed(1)} yr — expected ≥ 100`,
-    ).toBeGreaterThanOrEqual(100);
+      peakCount,
+      `expected exactly 1 N-peak in ${horizonYears} yr; found ${peakCount}`,
+    ).toBe(1);
+
+    // Settling: by t = 500 yr (well past the peak at t ≈ 227 yr), N has
+    // returned close to the stateless equilibrium k₀ = 1. Tolerance of 5%
+    // keeps the assertion meaningful without coupling to exact numerics.
+    const t500Idx = series.findIndex((s) => s.tYears >= 500);
+    expect(t500Idx, "horizon too short to verify settling at t=500yr").toBeGreaterThan(-1);
+    const nAt500 = series[t500Idx].N;
+    expect(
+      Math.abs(nAt500 - 1),
+      `N at t=500yr (${nAt500.toFixed(4)}) > 5% from k₀=1 — did not settle`,
+    ).toBeLessThan(0.05);
+
+    // Final 100 yr non-increasing — asymptotic approach to k₀ with no
+    // late oscillation (consistent with the "exactly 1 peak" finding above).
+    const tailStart = series.findIndex((s) => s.tYears >= horizonYears - 100);
+    for (let i = tailStart + 1; i < series.length; i++) {
+      expect(
+        series[i].N,
+        `N rose between t=${series[i - 1].tYears.toFixed(1)} and t=${series[i].tYears.toFixed(1)} yr — late oscillation`,
+      ).toBeLessThanOrEqual(series[i - 1].N);
+    }
 
     const finalN = series[series.length - 1].N;
     expect(finalN, "final N non-positive (extinction or numerical blow-up)").toBeGreaterThan(0);

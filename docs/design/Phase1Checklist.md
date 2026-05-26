@@ -1353,6 +1353,60 @@ before 2.1.1 fires. Full derivation:
 - [x] **2.1.6 [AI]** Commit `red:`. Report hash.
       *Result:* See `red: Slice 2.1 — replay engine anchor tests` in git log.
 
+### 2.2.0 R-016 amendment — replace anchor's trough check with single-excursion + settling assertions
+
+Surfaced during 2.2.1 implementation: the Slice 0 anchor's post-peak
+assertions (`nextTrough` exists; `peak → trough` interval ≥ 100 yr) were
+written under pre-1.3.4b params (`s0=1, N=0.2`), which produced oscillatory
+behaviour. With §17 finalized to Turchin verbatim (`s0=10, N0=0.5`), the
+deterministic model exhibits a **single excursion** that settles
+asymptotically to `(N=k₀=1, S=0)` — no trough, no recurring cycles
+(Phase1Design §17, Phase1MathDerivations §3.3, Turchin p.123). The trough
+check is mathematically incompatible with §17.
+
+R-014's Slice 2.1.0 amendment widened the peak window but didn't audit the
+rest of the assertion chain; this is the missing audit. New risk row
+**R-016** filed alongside.
+
+- [x] **2.2.0.a [AI]** Edit `client/src/sim/turchin.cycle.test.ts`:
+      remove the trough-existence + peak→trough-interval assertions
+      (lines 100-109).
+      *Result:* Removed.
+- [x] **2.2.0.b [AI]** Add three replacement assertions in the same file:
+      (1) `peakCount === 1` (single excursion per §17);
+      (2) `|N(t=500yr) - 1| < 0.05` (settling within 5% of k₀);
+      (3) final-100yr trajectory non-increasing (no late oscillation).
+      Keep the existing peak-in-[180, 280] window and the
+      `0 < finalN ≤ 1.5` sanity bounds.
+      *Result:* All three new assertions added; peak window + sanity bounds preserved.
+- [x] **2.2.0.c [AI]** Refresh the test's top doc comment and `it(...)`
+      description to reflect the single-excursion shape (drop "secular
+      cycle / next trough" language; cite Phase1MathDerivations §3.3 +
+      Turchin p.123).
+      *Result:* Top doc comment lists the 4-class assertion stack and cites §3.3 / Turchin p.123; describe + it labels updated.
+- [x] **2.2.0.d [AI]** Add **R-016** row to
+      [Phase1RiskRegister.md](Phase1RiskRegister.md): "Slice 0 anchor's
+      post-peak assertions were not audited at 2.1.0; trough check
+      incompatible with §17 verbatim's single-excursion behaviour".
+      Status: **Mitigated** here, closes at 2.2.3.
+      *Result:* R-016 row added after R-015; status Mitigated.
+- [x] **2.2.0.e [AI]** Run `npm test`, `npm run typecheck`, `npm run build`.
+      With `client/src/sim/replay.ts` present in the working tree (but
+      uncommitted — that's Slice 2.2.1's commit), the anchor should now
+      pass cleanly. Without `replay.ts` it would still fail at import,
+      which is the post-commit state intended for this step.
+      *Result:* Working-tree verification: 35/35 client tests pass (6 replay sub-cases + Turchin anchor green + 28 existing). Typecheck + build clean. The committed snapshot (without replay.ts) reverts to import-red, as intended.
+- [x] **2.2.0.f [HUMAN]** Review amendment diff
+      (`turchin.cycle.test.ts`, this checklist, `Phase1RiskRegister.md`).
+      *Result:* Lentulus reviewed and approved (double-approval) 2026-05-26.
+- [x] **2.2.0.g [HUMAN]** Approve commit.
+      *Result:* Lentulus approved commit (double-approval) 2026-05-26.
+- [x] **2.2.0.h [AI]** Commit `docs+test:` covering the test edit, this
+      checklist amendment, and the risk register update. Do **not** stage
+      `client/src/sim/replay.ts` — it commits separately as Slice 2.2.1.
+      Report hash.
+      *Result:* See `docs+test: Slice 2.2.0 — R-016 amendment` in git log; replay.ts remains untracked for the 2.2.1 commit.
+
 ### 2.2 Implementation
 
 - [ ] **2.2.1 [AI]** Implement `client/src/sim/replay.ts` per §6.1-6.4
