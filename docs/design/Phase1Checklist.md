@@ -1548,6 +1548,59 @@ gets fleshed out and turns green.
 Goal: Zustand store with mocked fetch in tests; refreshing the page
 restores the run.
 
+### 4.0 Setup — TS project references (resolves R-018)
+
+Goal: replace `shared/dist`-via-`exports` typing handoff with TS
+composite project references so the server's `tsc` reads `shared/src`
+through the project graph instead of stale `.d.ts`. Mandatory before
+any Slice 4 cross-workspace work per the Slice 3 retro action item.
+Not a test-first cycle — this is build-graph scaffolding with no new
+behavior; verification is `npm run typecheck` + `npm run build` clean.
+
+- [x] **4.0.1 [AI]** Edit configs:
+      (a) `shared/tsconfig.json` — add `"composite": true`.
+      (b) `client/tsconfig.json` + `server/tsconfig.json` — add
+          `"references": [{ "path": "../shared" }]`.
+      (c) `shared/package.json` + `client/package.json` +
+          `server/package.json` — switch `build` script from
+          `tsc -p tsconfig.json` to `tsc -b`. (`typecheck` stays
+          `tsc -p tsconfig.json --noEmit`; project-references does
+          not change `--noEmit` semantics.)
+      (d) `.gitignore` — add `*.tsbuildinfo` line (per-workspace
+          composite build artifacts emitted at project root, not
+          under `dist/`).
+      *Result:* Done 2026-05-26. 7 files modified
+      (3 tsconfig.json + 3 package.json + .gitignore). Subpoint (d)
+      added retroactively after discovering composite emits
+      `tsconfig.tsbuildinfo` at workspace root rather than under
+      `dist/`; amended per [[feedback-checklist-authoritative]] and
+      executed in the same batch. Pre-existing
+      `paths: { "@colonymodels/shared": ["../shared/src/index.ts"] }`
+      in client/tsconfig.json kept — does not conflict with the new
+      reference (path mapping took precedence already, so client side
+      of R-018 was effectively unimplicated; the fix targets server
+      side primarily).
+- [x] **4.0.2 [AI]** Run `npm run typecheck` + `npm run build`;
+      confirm clean across all 3 workspaces. Run `npm test`; confirm
+      41/41 client + 13/13 server unchanged.
+      *Result:* Verified 2026-05-26. `npm run typecheck` clean across
+      all 3 workspaces; `npm run build` clean (client: `tsc -b && vite
+      build` produced same 507.97 kB bundle, vite chunk-size warning
+      pre-existing; server: `tsc -b` clean; shared: `tsc -b` emits
+      `dist/index.{js,d.ts,d.ts.map}` + `tsconfig.tsbuildinfo`).
+      `npm test` matches Slice 3 closeout: client 41/41 across 6 files,
+      server 13/13 across 2 files, shared "No test files found" (the
+      documented 1.1.1 skip — exits 1 as expected). `git status` shows
+      8 modified files, no stray untracked (buildinfo files honored by
+      the new `.gitignore` line).
+- [x] **4.0.3 [HUMAN]** Procedural ack (technical change — single-yes
+      per [[feedback-gui-only-review]]).
+      *Result:* Acked 2026-05-26 via "go ahead" — single-yes per
+      [[feedback-gui-only-review]] for technical config-only change.
+- [ ] **4.0.4 [AI]** Commit `chore:` prefix (config-only, not a
+      red/green pair). Report hash.
+      *Result:* —
+
 ### 4.1 Test-first
 
 - [ ] **4.1.1 [AI]** Write `client/src/store/runStore.test.ts` covering

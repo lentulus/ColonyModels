@@ -7,6 +7,7 @@ build/
 .DS_Store
 .vite/
 coverage/
+*.tsbuildinfo
 
 # Local-only reference material (out-of-tree docs, PDFs, etc.)
 docs/reference/
