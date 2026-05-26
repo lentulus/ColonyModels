@@ -1409,9 +1409,9 @@ rest of the assertion chain; this is the missing audit. New risk row
 
 ### 2.2 Implementation
 
-- [ ] **2.2.1 [AI]** Implement `client/src/sim/replay.ts` per §6.1-6.4
+- [x] **2.2.1 [AI]** Implement `client/src/sim/replay.ts` per §6.1-6.4
       (`paramsAt`, `replayTo`, branching helpers).
-      *Result:* —
+      *Result:* 75-line implementation: `paramsAt` walks sorted events (boundary inclusive); `replayTo` splits ticks around event boundaries so param changes apply exactly at event time. State-poke spreads onto state; `stop` is a no-op (UI-loop signal per §8.2). Branching left to caller per §6.4 — array primitives clearer than wrapping a one-liner. With this in place: 35/35 client tests green (6 replay sub-cases + Turchin anchor + 28 existing); R-014 + R-016 fully closed.
 - [ ] **2.2.2 [AI]** Update `App.tsx` to drive the plot via `replayTo` so
       the Turchin anchor exercises the same code path as the demo page.
       *Result:* —
