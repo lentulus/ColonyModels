@@ -1334,24 +1334,24 @@ before 2.1.1 fires. Full derivation:
 
 ### 2.1 Test-first
 
-- [ ] **2.1.1 [AI]** Write `client/src/sim/replay.test.ts` covering:
+- [x] **2.1.1 [AI]** Write `client/src/sim/replay.test.ts` covering:
       `paramsAt` with zero / one / many `param-set` events; `replayTo`
       determinism (same events → byte-equal output across two runs);
       branching (drop-after-T then append a different value produces a
       visibly different trajectory); mid-tick event lands at the exact
       event time, not the next tick boundary.
-      *Result:* —
-- [ ] **2.1.2 [AI]** Run `npm test`, confirm Slice 2 tests fail and
+      *Result:* 193-line file written with all six sub-cases (paramsAt-empty / -one / -many; determinism; branch-divergence; mid-tick-event). Types imported from `@colonymodels/shared`; `makeRun(overrides)` helper keeps each sub-case independent.
+- [x] **2.1.2 [AI]** Run `npm test`, confirm Slice 2 tests fail and
       Turchin anchor still fails at import.
-      *Result:* —
-- [ ] **2.1.3 [AI]** Post red-review summary.
-      *Result:* —
-- [ ] **2.1.4 [HUMAN]** Red review.
-      *Result:* —
-- [ ] **2.1.5 [HUMAN]** Approve red commit.
-      *Result:* —
-- [ ] **2.1.6 [AI]** Commit `red:`. Report hash.
-      *Result:* —
+      *Result:* Client: 4 files / 28 tests pass; `replay.test.ts` and `turchin.cycle.test.ts` both fail at import (`Cannot find module './replay'`) — neither at assertion. Server `runs.roundtrip.test.ts` still red at import (Slice 3). Typecheck + build clean.
+- [x] **2.1.3 [AI]** Post red-review summary.
+      *Result:* Summary delivered in chat covering the six sub-cases, style choices, and red-state verification.
+- [x] **2.1.4 [HUMAN]** Red review.
+      *Result:* Lentulus reviewed and approved (double-approval) 2026-05-26.
+- [x] **2.1.5 [HUMAN]** Approve red commit.
+      *Result:* Lentulus approved commit (double-approval) 2026-05-26.
+- [x] **2.1.6 [AI]** Commit `red:`. Report hash.
+      *Result:* See `red: Slice 2.1 — replay engine anchor tests` in git log.
 
 ### 2.2 Implementation
 
