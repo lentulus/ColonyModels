@@ -101,7 +101,7 @@ Each slice's green review records its DoD sign-off here:
 | ----- | ---- | -------------- | ------- | ------------- |
 | 0 | — | — | — | — |
 | 1 | 2026-05-25 | Yes (12/13 green, 1 explicitly waived — Asserts properties + Test execution logs resolved during 1.3.4b.fix-6 / 1.3.4e; typecheck/build resolved at 1.3.4d) | "Anchors still green" partial (Slice 0 anchors 0.2.2 + 0.2.3 still red at import, awaiting Slice 2 + Slice 3) | Lentulus |
-| 2 | *(pending 2.3.4 sign-off)* | *(pending — draft scorecard at end of [Phase1Checklist.md](Phase1Checklist.md) 2.3.3a)* | *(pending)* | *(pending)* |
+| 2 | 2026-05-26 | Yes (15/16 green, 1 explicitly waived — "Anchors still green" partial for runs.roundtrip.test.ts / 0.2.3, closes at Slice 3.2.4) | "Anchors still green" partial (0.2.3 still red at import) | Lentulus |
 | 3 | — | — | — | — |
 | 4 | — | — | — | — |
 | 5 | — | — | — | — |

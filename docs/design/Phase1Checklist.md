@@ -1461,15 +1461,15 @@ rest of the assertion chain; this is the missing audit. New risk row
       partial waiver, but now only 0.2.3 — runs.roundtrip.test.ts red at
       import until Slice 3.2.4). Bundled into 2.3.3b.f commit.
       *Result:* Waiver row added after Slice 1's resolved-row; closes at Slice 3.2.4.
-- [ ] **2.3.4 [HUMAN]** **DoD sign-off** — confirm DoD all-green or
+- [x] **2.3.4 [HUMAN]** **DoD sign-off** — confirm DoD all-green or
       explicitly waived; retro entry approved.
-      *Result:* —
-- [ ] **2.3.5 [AI]** Pre-commit triage.
-      *Result:* —
-- [ ] **2.3.6 [HUMAN]** Approve commit.
-      *Result:* —
-- [ ] **2.3.7 [AI]** Commit `green:`. Report hash.
-      *Result:* —
+      *Result:* Lentulus signed off (double-approval) 2026-05-26: 15/16 items green, 1 partial waiver ("Anchors still green" for 0.2.3, closes at Slice 3.2.4). Retro entry approved. Recorded in [Phase1DoD.md](Phase1DoD.md) Sign-off table.
+- [x] **2.3.5 [AI]** Pre-commit triage.
+      *Result:* Client 41/41 green; server `runs.roundtrip.test.ts` red at import (waived → 3.2.4); shared no test files (1.1.1 skip). Typecheck + build clean across all 3 workspaces. Uncommitted from 2.3.3a sweep: `Phase1RiskRegister.md`, `Phase1Retros.md`, `Phase1AutomatedTests.md` — bundled into the 2.3.7 closeout commit.
+- [x] **2.3.6 [HUMAN]** Approve commit.
+      *Result:* Lentulus approved closeout commit (double-approval) 2026-05-26.
+- [x] **2.3.7 [AI]** Commit `green:`. Report hash.
+      *Result:* See `green: Slice 2 — replay engine` in git log.
 
 ---
 

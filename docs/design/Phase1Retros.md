@@ -144,26 +144,39 @@ the regression anchors won't turn green until Slices 1 & 2.
 
 ## Slice 2 — Replay engine
 
-**Date:** —
-**Duration:** —
+**Date:** 2026-05-26 (single session: 2.1.0 R-014 amendment → 2.1 red phase → 2.2.0 R-016 amendment → 2.2 implementation → 2.3 review).
+**Duration:** ~1 session. Faster than Slice 1 — the §17 verbatim alignment work in 1.3.4b had already done the math-correctness audit; this slice was the assertion-side cleanup it implied, plus the replay engine implementation.
 
 ### What surprised me?
 
-*(fill in at green review)*
+- **R-016 surfaced exactly when `replayTo` made the anchor reach its assertion phase, not before.** R-014 widened the peak window at 2.1.0 but didn't audit the rest of the assertion chain. The trough-existence and peak→trough interval assertions sat dormant (test still red at import) until the implementation landed at 2.2.1 — then they fired assertion-red. The audit-completeness gap at 2.1.0 was real: I should have walked the *entire* `it(...)` block when widening the peak window, not just the assertion the bound modified. Lesson now codified into "What I'd change."
+- **The math derivation §3.3 was exactly right.** `peakCount === 1` holds; `|N(500yr) - 1| < 0.05` holds; final-100yr non-increasing holds. No tolerance widening needed after the first try — the loose-then-tighten cadence from Slice 1 worked again, but for the first time I trusted the analytical derivation's tightness on the first attempt.
+- **The "branching helpers" line in the checklist was a YAGNI temptation.** The §6.4 branching procedure is `[...events.filter(e => e.tEpoch <= tr), newEvent]` followed by `replayTo`. Nothing to wrap. I considered exporting `rewindEvents(events, tr)` but stopped — the array primitive at the caller is clearer than the wrapper. Confirmed by the test's branch-divergence sub-case passing without a helper. Future store code in Slice 4 can re-evaluate.
+- **Per-step commits read better than Slice 1's bundled wip:-style ones.** Slice 1's `4f08f7e wip: Slice 1.2 complete + Slice 1.3.3 UI iteration` is opaque to a future reader; Slice 2's six commits each describe one move. Cost: roughly 2× the commit count, but each diff is a meaningful unit of review. Will keep doing.
 
 ### What worked — keep doing?
 
-*(fill in at green review)*
+- **Checklist-authoritative discipline through mid-slice surprises.** R-016 surfaced mid-2.2.1 (already 75 lines into `replay.ts`). I stopped, filed 2.2.0 as a numbered step, double-approved, executed, *then* resumed 2.2.1. No silent edit-the-test-and-move-on shortcut even under "almost done, just fix it" pressure.
+- **The replay test's `makeRun(overrides)` helper.** Each sub-case customises only the bits it needs; no shared mutable state; collapses to a shared helper if/when the shared workspace exports a §17 default.
+- **The new anchor assertion stack codifies design intent as executable.** `peakCount === 1` + settling + monotonic-tail make §17's single-excursion behavior an executable contract. Future model changes (Option D, stochastic forcing) will break this anchor and force a deliberate amendment — exactly the desired behavior.
+- **Reusing R-014's "amendment commit before next step" pattern at 2.2.0.** Both R-014 and R-016 are §17-verbatim audit fixes; both got the same `docs+test: Slice 2.X.0 — amendment` commit shape with substeps a–h and a clean separation from the implementation commit. The audit trail is one of the most legible things in the repo right now.
+- **Visually-found UI fixes flow through the same checklist discipline.** 2.3.3.fix-1 (round N to integer in tooltip) was found during the 2.3.3 spot-check; instead of a silent edit, it became its own numbered substep + commit. Pattern reusable for any future visual-review fix.
 
 ### What would I change next time?
 
-*(fill in at green review)*
+- **When the model's qualitative behavior changes (e.g., §17 verbatim alignment in 1.3.4b), audit *every* assertion in every downstream `it(...)` block — not just the assertion the change obviously affected.** R-014 caught the peak window; R-016 was the trough assertion in the same `it("A; B; C; D", ...)` block. There was no excuse for one to ship without the other being audited. For multi-assertion `it()` blocks, treat the *whole* block as the unit of audit when the model behavior changes.
+- **Audit Phase1AutomatedTests.md alongside the test code at amendment time.** The 0.2.2 entry in Phase1AutomatedTests.md still described the pre-2.1.0/2.2.0 setup and pass criteria right up until 2.3.3a's tracking sweep refreshed it. Slice 1's retro flagged the same pattern (1.3.4b.fix-6 backfilled 1.3.4b after the fact). Action item: at any test-amendment step (e.g., `2.X.0`), include a substep "update Phase1AutomatedTests.md to match" in the same commit.
+- **Consider extracting a `dev:client-only` script** so the 2.3.3 visual review doesn't have to fight a failing server-workspace boot. Low priority — defer to Slice 5 polish or Slice 6.
 
 ### Action items
 
 | Item | Owner | Target slice / doc |
 | ---- | ----- | ------------------ |
-| *(none yet)* | | |
+| Write Slice 2 Asserts properties (P-R-1..6 from [Phase1PBT.md](Phase1PBT.md)) — analog of Slice 1's 1.3.4e | Claude | resolve at end of Slice 2 *or* schedule as a 2.x.y substep before 2.3.7 closeout |
+| Standing rule: at every test-amendment step (`N.M.0`), include a substep to refresh [Phase1AutomatedTests.md](Phase1AutomatedTests.md) to match the new test shape, in the same commit | Both | Slice 3 onward |
+| Carry "audit every assertion in `it()` blocks when model behavior changes" into Slice 5's math-correctness review pattern | Both | Slice 5.3.3 |
+| Add `dev:client-only` script to root `package.json` | Claude | Slice 5 / 6 polish |
+| ~~Widen `turchin.cycle.test.ts` peak-bound [80, 220] → [180, 280] (R-014)~~ — **resolved at Slice 2.1.0**, commit `30a1522` | ~~Claude~~ | ✅ |
 
 ---
 

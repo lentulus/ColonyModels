@@ -97,40 +97,57 @@ $$N(t) = \frac{K}{1 + \left(\frac{K - N_0}{N_0}\right) e^{-rt}}$$
 
 ### 0.2.2 — Turchin cycle-period regression anchor
 
-- **Aligned with checklist step:** 0.2.2. Turns green at 2.2.3.
+- **Aligned with checklist step:** 0.2.2. Turned green at 2.2.3.
 - **File:** `client/src/sim/turchin.cycle.test.ts`.
 - **Note:** slow-ish; consider behind `--run-slow` later (see
   [Phase1Design.md](Phase1Design.md) §11.2 rule 4).
 
-**What it verifies.** That the full coupled Eq 7.4 system, run with the §17
+**What it verifies.** That the full coupled Eq 7.4 system, run with §17
 canonical defaults via `replayTo` (not just `rk4Step`), produces Turchin's
-characteristic secular cycle in a recognisable period band.
+characteristic **single-excursion** behaviour — one boom-and-bust over
+2-3 centuries, then asymptotic settling to the stateless equilibrium
+`(N = k₀ = 1, S = 0)`. Recurring cycles (Turchin Fig 7.2) require
+stochastic forcing, which Phase 1 doesn't implement (Turchin p.123;
+[Phase1MathDerivations.md §3.3](Phase1MathDerivations.md)).
 
-**Setup (test inputs).** §17 `BLANK_RUN` defaults verbatim:
-`r=0.02, beta=0.25, c=3, s0=1; N=0.2, S=0; tickSeconds = 2_629_746 (1 month)`.
-Horizon: 600 years.
+**Setup (test inputs).** §17 `BLANK_RUN` defaults verbatim (Turchin
+Fig 7.1 caption p.124 / §7.2.1 prose p.123): `r=0.02, beta=0.25, c=3,
+s0=10; N=0.5, S=0; tickSeconds = 2_629_746 (1 month)`. Horizon: 600 years.
 
 **Procedure.** Call `replayTo(run, [], targetEpoch = t0Epoch + 600 * SECS_PER_YEAR)`.
-Scan returned snapshots' `state.N` for local extrema.
+Scan returned snapshots' `state.N` for local extrema; verify single-
+excursion shape.
 
-**Pass criteria.**
-- First local maximum of `N` occurs at `t ∈ [80, 220]` years after `t0`.
-- The next local minimum occurs at least 100 years after that first peak.
+**Pass criteria** (Slice 2.2.0 amendment shape):
+- First local maximum of `N` occurs at `t ∈ [180, 280]` years after `t0`
+  (peak at t ≈ 227 yr per [Phase1MathDerivations.md §3.5/§5](Phase1MathDerivations.md)).
+- Exactly **one** local maximum of `N` in the horizon (single excursion;
+  Phase1MathDerivations §3.3, Turchin p.123).
+- `|N(t=500yr) - 1| < 0.05` — by 500 yr, N has settled within 5% of k₀.
+- Final 100 yr of the trajectory is non-increasing (asymptotic settling,
+  no late oscillation).
 - Final `N` at year 600 is in `(0, 1.5]` (no blow-up, no extinction).
 
-Tolerances are deliberately loose — the goal is "secular cycle appears,"
-not "matches Turchin's figure to three decimal places."
+Tolerances are deliberately loose — the goal is "single excursion +
+settle," not "matches Turchin's figure to three decimal places."
 
 **Failure modes to watch for.**
 - `S ≥ 0` reset missing → state runs negative, dynamics wrong.
 - Tick / dt unit confusion → wrong period (off by SECS_PER_YEAR).
 - `k(S)` denominator-zero glitch at `S = 0` (shouldn't, since `s0 > 0`).
+- Multi-peak (a second peak appearing in horizon) → would indicate
+  spurious oscillation, contradicting §17's deterministic-single-
+  excursion behaviour.
 
 **Execution log.**
-- Status: `pending`
-- Date: —
-- Evidence: —
-- Notes: —
+- Status: `green`
+- Date: 2026-05-26
+- Evidence: client/src/sim/turchin.cycle.test.ts green at Slice 2.2.3
+  (commit `eae0a5f`); peak at t ≈ 227 yr inside `[180, 280]`; `peakCount === 1`;
+  `|N(500yr) - 1| < 0.05` holds; final-100yr non-increasing.
+- Notes: Two amendments mid-slice — R-014 (2.1.0) widened the peak window,
+  R-016 (2.2.0) replaced the trough check with the settling + single-
+  excursion stack. Both closed at this commit.
 
 ---
 
@@ -304,7 +321,8 @@ resulting trajectory.
 
 ### 2.1.1 — Replay engine: paramsAt, determinism, branching, mid-tick
 
-- **Aligned with checklist step:** 2.1.1.
+- **Aligned with checklist step:** 2.1.1. Red phase at Slice 2.1.6;
+  turned green at Slice 2.2.3.
 - **File:** `client/src/sim/replay.test.ts`.
 - **Type:** Multi-case unit test.
 
@@ -327,10 +345,13 @@ resulting trajectory.
 - Mid-tick event applied at next tick boundary instead of exact event time.
 
 **Execution log.**
-- Status: `pending`
-- Date: —
-- Evidence: —
-- Notes: —
+- Status: `green`
+- Date: 2026-05-26
+- Evidence: client/src/sim/replay.test.ts green at Slice 2.2.3 (commit
+  `eae0a5f`). All 6 sub-cases pass. Total client tests: 35/35 green.
+- Notes: Asserts properties P-R-1..6 ([Phase1PBT.md](Phase1PBT.md)
+  "Properties — `client/src/sim/replay.test.ts`") **not yet written** —
+  pending resolution at end of Slice 2 DoD review (analog of 1.3.4e).
 
 ---
 
