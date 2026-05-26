@@ -88,7 +88,8 @@ If a DoD item cannot be satisfied this slice, document the waiver here
 | 1 | "Anchors still green" — partial | Slice 0's `turchin.cycle.test.ts` (0.2.2) and `runs.roundtrip.test.ts` (0.2.3) are red at import; they're not "previously-green-now-red", they're "still-red-from-Slice-0" awaiting the modules they import (`./replay` for Slice 2, `../app` for Slice 3). Slice 0's `logistic.analytic.test.ts` (0.2.1) IS green per spec. | 0.2.2: Slice 2.2.3; 0.2.3: Slice 3.2.4 |
 | ~~1~~ | ~~"Asserts properties green"~~ | Resolved 2026-05-25 at Slice 1.3.4e: 13 properties (P-M-1..7 + P-I-1..6) added inline in the existing `model.test.ts` and `integrator.test.ts` per [Phase1PBT.md](Phase1PBT.md) convention. All green at 100 runs/property. | ~~waived~~ resolved in Slice 1 |
 | ~~1~~ | ~~"Test execution logs populated"~~ | Resolved 2026-05-25 at Slice 1.3.4b.fix-6: 1.3.4b section added to [Phase1AutomatedTests.md](Phase1AutomatedTests.md). | ~~waived~~ resolved in Slice 1 |
-| 2 | "Anchors still green" — partial | Slice 0's `runs.roundtrip.test.ts` (0.2.3) is red at import (`Cannot find module '../app.js'`); it's not "previously-green-now-red", it's "still-red-from-Slice-0" awaiting the server `app.ts` module. Slice 0's `logistic.analytic.test.ts` (0.2.1) and `turchin.cycle.test.ts` (0.2.2) are both green. Same shape as Slice 1's partial waiver, now reduced to a single anchor. | 0.2.3: Slice 3.2.4 |
+| ~~2~~ | ~~"Anchors still green" — partial~~ | Resolved 2026-05-26 at Slice 3.2.4: `server/src/app.ts` extracted; `runs.roundtrip.test.ts` (0.2.3) now green at assertion across all 8 sub-cases. | ~~waived~~ resolved in Slice 3 |
+| 3 | "README updated" | Slice 3 added the `/api/runs/...` surface, the `DB_URL` env var, and the `better-sqlite3@^12.9.0` pin — all technically user-visible. Positive reason for defer: the API shape is still fresh; Slice 4 will reshape it as the client consumes the endpoints (likely adding error semantics, batching, etc.). Documenting now risks instant rot. Update at end of Slice 5 once the client→server flow has shaken out. Run-time workflow (`npm run dev`, ports, install steps) is unchanged this slice. | Slice 5 closeout |
 
 A waiver requires explicit `[HUMAN]` approval (subject to the double-
 approval gate, like any other gated decision).
@@ -102,7 +103,7 @@ Each slice's green review records its DoD sign-off here:
 | 0 | — | — | — | — |
 | 1 | 2026-05-25 | Yes (12/13 green, 1 explicitly waived — Asserts properties + Test execution logs resolved during 1.3.4b.fix-6 / 1.3.4e; typecheck/build resolved at 1.3.4d) | "Anchors still green" partial (Slice 0 anchors 0.2.2 + 0.2.3 still red at import, awaiting Slice 2 + Slice 3) | Lentulus |
 | 2 | 2026-05-26 | Yes (15/16 green, 1 explicitly waived — "Anchors still green" partial for runs.roundtrip.test.ts / 0.2.3, closes at Slice 3.2.4) | "Anchors still green" partial (0.2.3 still red at import) | Lentulus |
-| 3 | — | — | — | — |
+| 3 | 2026-05-26 | Yes (17/18 green, 1 explicitly waived — "README updated" deferred to Slice 5 closeout per positive engineering reason; API surface still fresh). Slice 0 anchor 0.2.3 carry-over resolved. R-015 closed; R-017 + R-018 filed and mitigated. | "README updated" (defer to Slice 5) | Lentulus |
 | 4 | — | — | — | — |
 | 5 | — | — | — | — |
 | 6 | — | — | — | — |

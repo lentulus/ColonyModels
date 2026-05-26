@@ -1480,62 +1480,62 @@ gets fleshed out and turns green.
 
 ### 3.1 Test-first
 
-- [ ] **3.1.1 [AI]** Write `server/src/db.test.ts`: in-memory SQLite,
+- [x] **3.1.1 [AI]** Write `server/src/db.test.ts`: in-memory SQLite,
       runs / events / snapshots repo CRUD, foreign-key cascade on
       `DELETE FROM runs`.
-      *Result:* —
-- [ ] **3.1.2 [AI]** Flesh out `server/src/routes/runs.roundtrip.test.ts`
+      *Result:* `server/src/db.test.ts` (130 lines, 5 sub-cases) created against not-yet-existent `./db.js`; commits the `DbRepo` contract via the typed import. Bundled into red commit `589f82c` at 3.1.7.
+- [x] **3.1.2 [AI]** Flesh out `server/src/routes/runs.roundtrip.test.ts`
       from the Slice 0 skeleton: full create-run → POST events → PUT
       snapshots → GET back, byte-equal. Add zod-rejection cases (bad
       payload → 400).
-      *Result:* —
-- [ ] **3.1.3 [AI]** Run `npm test`, confirm Slice 3 tests fail.
-      *Result:* —
-- [ ] **3.1.4 [AI]** Post red-review summary.
-      *Result:* —
-- [ ] **3.1.5 [HUMAN]** Red review (boundary contracts — confirm the
+      *Result:* Extended Slice 0 skeleton from 102 → 200 lines; 8 `it()`s total (3 existing per-endpoint round-trips kept + 1 full-sequence happy path + 4 zod-rejection cases). Commits the `{ error, issues }` 400-body contract via `expectZod400` helper. Bundled into red commit `589f82c`.
+- [x] **3.1.3 [AI]** Run `npm test`, confirm Slice 3 tests fail.
+      *Result:* Client 41/41 green (no regression). Server: both `db.test.ts` (Cannot find module `./db.js`) and `runs.roundtrip.test.ts` (Cannot find module `../app.js`) fail at *import*, not at assertion — the right red. Shared "no test files" baseline unchanged. Typecheck + build clean.
+- [x] **3.1.4 [AI]** Post red-review summary.
+      *Result:* Summary posted inline 2026-05-26: contract surfaces (`DbRepo` + `{ error, issues }` 400 shape), per-`it()` → spec mapping, red-state attribution.
+- [x] **3.1.5 [HUMAN]** Red review (boundary contracts — confirm the
       HTTP shapes match §7.2).
-      *Result:* —
-- [ ] **3.1.6 [HUMAN]** Approve red commit.
-      *Result:* —
-- [ ] **3.1.7 [AI]** Commit `red:`. Report hash.
-      *Result:* —
+      *Result:* Per [[feedback-gui-only-review]] saved this slice: user signalled the technical contract checklist was unusable and to "let's assume you knew what you were doing and move on." Procedural ack accepted as approval.
+- [x] **3.1.6 [HUMAN]** Approve red commit.
+      *Result:* Covered by the same 3.1.5 "move on" message.
+- [x] **3.1.7 [AI]** Commit `red:`. Report hash.
+      *Result:* Commit `589f82c` — `red: Slice 3.1 — db repo CRUD + HTTP roundtrip + zod rejection tests`. Pushed by user.
 
 ### 3.2 Implementation
 
-- [ ] **3.2.1 [AI]** Install `better-sqlite3`, `nanoid`, `zod`.
-      *Result:* —
-- [ ] **3.2.2 [AI]** Implement `server/src/db.ts` with schema migrations
+- [x] **3.2.1 [AI]** Install `better-sqlite3`, `nanoid`, `zod`.
+      *Result:* `nanoid`, `zod`, `@types/better-sqlite3` installed at latest. `better-sqlite3` **pinned to `^12.9.0`** — v12.10+ stopped publishing prebuilds for Node ABI v115 (Node 20), and this system lacks `make`/`gcc` for the node-gyp source fallback. Filed as [[risk-017]]. Diagnosis used `prebuild-install --verbose` to surface the 404 (the default warning's `libc=` field is a red herring).
+- [x] **3.2.2 [AI]** Implement `server/src/db.ts` with schema migrations
       per §7.1.
-      *Result:* —
-- [ ] **3.2.3 [AI]** Implement `server/src/routes/runs.ts`,
+      *Result:* `server/src/db.ts` (~165 lines) — `openDb(url)` → `DbRepo` with prepared statements, JSON columns (stringify on write, parse on read), `PRAGMA foreign_keys = ON` for cascade, `events.append` auto-assigns seq via `MAX(seq)+1` per `(run_id, t_epoch)`, snapshot bulk upsert in a transaction. Also: tooling adaptation — `shared/package.json` exports → `dist/`, server `tsconfig.json` dropped `@colonymodels/shared` paths mapping (resolves rootDir conflict on server tsc). Filed as [[risk-018]].
+- [x] **3.2.3 [AI]** Implement `server/src/routes/runs.ts`,
       `events.ts`, `snapshots.ts` per §7.2 with zod validation at the
       boundary.
-      *Result:* —
-- [ ] **3.2.4 [AI]** Wire routes into `server/src/index.ts`.
-      *Result:* —
-- [ ] **3.2.5 [AI]** Run `npm test`; full suite green.
-      *Result:* —
+      *Result:* `server/src/schemas.ts` (zod schemas mirroring shared types, `N >= 0` enforced as defense-in-depth) plus 3 route files (10 endpoints total). Every handler `safeParse`s and returns 400 `{error, issues}` on failure. `?after=T` uses `z.coerce.number().refine(isFinite)` to reject NaN.
+- [x] **3.2.4 [AI]** Wire routes into `server/src/index.ts`.
+      *Result:* `server/src/app.ts` extracted — exports `app` (express + cors + JSON middleware + `/health` + 3 routers mounted at `/api/runs`). `server/src/index.ts` slimmed to `import { app } + app.listen(PORT)`. `server/vitest.config.ts` adds `env.DB_URL = ":memory:"` for tests. Closes Slice 0 anchor 0.2.3.
+- [x] **3.2.5 [AI]** Run `npm test`; full suite green.
+      *Result:* Client 41/41, server 13/13 (5 db sub-cases + 8 HTTP sub-cases), shared "no test files" baseline. Typecheck + build clean across all 3 workspaces. Green commit `17ba11e`.
 
 ### 3.3 Review
 
-- [ ] **3.3.1 [AI]** Ready-for-review summary.
-      *Result:* —
-- [ ] **3.3.2 [HUMAN]** Read diff.
-      *Result:* —
-- [ ] **3.3.3 [HUMAN]** Manually `curl` (or REST-client) one round-trip
+- [x] **3.3.1 [AI]** Ready-for-review summary.
+      *Result:* Brief 2-paragraph summary posted inline 2026-05-26 (slice scope + test posture + anchor closure). Long contract checklist deliberately omitted per [[feedback-gui-only-review]].
+- [x] **3.3.2 [HUMAN]** Read diff.
+      *Result:* Procedural ack per [[feedback-gui-only-review]] — user can't review at code level; "proceed as you recommend" covered it.
+- [x] **3.3.3 [HUMAN]** Manually `curl` (or REST-client) one round-trip
       against the running server.
-      *Result:* —
-- [ ] **3.3.3a [AI]** Tracking sweep: update
+      *Result:* AI ran the live demo on user's behalf 2026-05-26 (`curl` not present on this system; used Node's built-in `fetch` against `node server/dist/index.js` started with `DB_URL=:memory:`). Demo covered: `/health` ping; POST run + GET back (full record with server-minted id + createdAt); POST 2 events + GET list; PUT 3 snapshots + GET list; PUT bad snapshot `{N:-1}` → HTTP 400 with `{error,issues}` body (issue path `[0, "state", "N"]`, message "Too small: expected number to be >=0"); GET runs list; DELETE run → 200; GET deleted run → 404; GET events after delete → `[]` (cascade verified). User saw the JSON output.
+- [x] **3.3.3a [AI]** Tracking sweep: update
       [Phase1RiskRegister.md](Phase1RiskRegister.md); draft Slice 3 entry
       in [Phase1Retros.md](Phase1Retros.md); fill in
       [Phase1DoD.md](Phase1DoD.md) Slice 3 row.
-      *Result:* —
-- [ ] **3.3.4 [HUMAN]** **DoD sign-off** — confirm DoD all-green or
+      *Result:* [Phase1RiskRegister.md](Phase1RiskRegister.md): R-015 moved to Closed (decision: keep tsconfig excludes — vitest owns test typechecking); R-017 (better-sqlite3 pin) and R-018 (server↔shared module-resolution coupling) added to active. [Phase1Retros.md](Phase1Retros.md): Slice 3 entry filled in (date, surprises, what-worked, what-to-change, action items). [Phase1DoD.md](Phase1DoD.md): Slice 2's 0.2.3 waiver strikethrough'd as resolved; Slice 3 row added (pending sign-off). [Phase1AutomatedTests.md](Phase1AutomatedTests.md): execution logs for 3.1.1 + 3.1.2 backfilled with commit hashes + notes (per Slice 2 standing rule).
+- [x] **3.3.4 [HUMAN]** **DoD sign-off** — confirm DoD all-green or
       explicitly waived; retro entry approved.
-      *Result:* —
-- [ ] **3.3.5 [AI]** Pre-commit triage.
-      *Result:* —
+      *Result:* Lentulus signed off 2026-05-26: 17/18 green, 1 explicit waiver ("README updated" deferred to Slice 5 closeout per positive engineering reason — API surface still fresh, will reshape as client consumes it in Slice 4). Recorded in [Phase1DoD.md](Phase1DoD.md) Sign-off table.
+- [x] **3.3.5 [AI]** Pre-commit triage.
+      *Result:* Working tree contains 5 modified tracking docs (Retros, RiskRegister, DoD, AutomatedTests, Checklist) — all from the 3.3.3a sweep + 3.3.4 sign-off row. No code changes outside docs/. Bundling into closeout commit at 3.3.7.
 - [ ] **3.3.6 [HUMAN]** Approve commit.
       *Result:* —
 - [ ] **3.3.7 [AI]** Commit `green:`. Report hash.

@@ -182,26 +182,36 @@ the regression anchors won't turn green until Slices 1 & 2.
 
 ## Slice 3 — Persistence + HTTP
 
-**Date:** —
-**Duration:** —
+**Date:** 2026-05-26 (single session: 3.1 red phase → 3.2 implementation → 3.3 demo + sweep).
+**Duration:** ~1 session. Implementation itself was fast (~15 min for `db.ts` + 3 routes + `schemas.ts` + `app.ts` extraction) once the tooling obstacles were cleared.
 
 ### What surprised me?
 
-*(fill in at green review)*
+- **better-sqlite3 silently dropped Node 20 prebuilds at v12.10**, and the system has no C toolchain so source compile fails on `make`. Took 5 install attempts to root-cause: prebuild-install's warning shows `libc=` empty, which is a red herring — the actual issue is a 404 on GitHub releases (no v115 ABI tag in v12.10.0+ assets). The real cause only surfaced via `prebuild-install --verbose`. Pinned to `^12.9.0` (filed as [[risk-017]]). Lesson: when a native-module install fails, jump to `--verbose` immediately instead of fishing with env vars and CLI flags.
+- **The shared/server module-resolution conflict (rootDir vs paths) was a real obstacle.** Client doesn't hit it because of `noEmit: true`; server does because it emits. Fix (shared/exports → dist, drop server/tsconfig paths) is minimal but introduces a fresh-dist dependency on every server typecheck. Real fix would be TS project references — filed as R-018 for Slice 4 setup.
+- **The user's "I can only contribute on visible GUI changes" feedback at 3.1.5 reshaped the rest of the slice.** Saved as [[feedback-gui-only-review]]. After that: skipped long contract checklists at `[HUMAN]` review gates, ran a curl demo at 3.3.3 to give the otherwise-invisible slice a concrete artifact. The demo (Node fetch script against a backgrounded server, in-memory DB) is now the reusable template for any future server-only slice.
+- **The "10 endpoints" felt like a lot until they landed as ~30 lines per file.** §7.2's endpoint list maps almost 1:1 to handler functions; once `safeParse` + `db.X.method` was the shape, each route was 4–8 lines.
 
 ### What worked — keep doing?
 
-*(fill in at green review)*
+- **Contract-by-test, then implement.** 3.1.1's `DbRepo` interface committed via `import { openDb, type DbRepo } from "./db.js"` pinned the entire repo surface (10 methods) before any of db.ts was written. 3.1.2's `expectZod400` helper pinned the 400-body shape before any route existed. Implementation was then "make these tests pass" — no design decisions during implementation, just transcription.
+- **Live curl demo as the slice's visible artifact.** Slice 3 has zero UI surface; the curl session at 3.3.3 (POST a run, GET it back, POST events, PUT snapshots, see a 400 on N=-1, DELETE → cascade) is the closest thing to a "you can look at this." Backgrounded the server with `DB_URL=:memory:`, hit it with a one-shot Node fetch script. Pattern reusable for Slice 4's API wrappers or any future server-only work.
+- **Two-line summary first, contract-review checklist NEVER.** Slice 2's red-review summary was ~200 lines; Slice 3's was 1 sentence after the gui-only-review feedback. User-visible quality unchanged. Going forward, only present contract details when the user explicitly asks.
 
 ### What would I change next time?
 
-*(fill in at green review)*
+- **Set up TypeScript project references before Slice 4 starts** (filed as [[risk-018]]). Server's typecheck now silently depends on `shared/dist` being current; if shared/src changes and no one runs `npm --workspace shared build`, server reads stale types. Composite project references make tsc handle the dependency automatically.
+- **Run `prebuild-install --verbose` first on any native-module install failure.** The 5-attempt fishing expedition (env vars, npm_config, --libc CLI flag, --ignore-scripts) was avoidable; the real signal was one `--verbose` flag away.
+- **When the user pushes back on process ("just move on"), capture the rule as memory immediately.** Done this time ([[feedback-gui-only-review]] saved before continuing). The rule is durable; without it next slice would have re-litigated the contract-checklist style.
 
 ### Action items
 
 | Item | Owner | Target slice / doc |
 | ---- | ----- | ------------------ |
-| *(none yet)* | | |
+| Set up TypeScript project references so server's typecheck does not depend on a fresh `shared/dist` (R-018) | Claude | Slice 4 (before workspace-boundary work) |
+| Re-evaluate tsconfig test-excludes — keep (vitest owns test typechecking) or remove now that the anchor modules exist | Claude | Slice 4 or 5 |
+| Document the `better-sqlite3@^12.9.0` pin reason in any future README dev-setup section (R-017) | Claude | Slice 6 polish |
+| Carry the "live curl demo" pattern into Slice 4's server-adjacent review gates as the visible-artifact substitute | Both | Slice 4 |
 
 ---
 

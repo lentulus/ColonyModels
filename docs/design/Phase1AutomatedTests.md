@@ -382,10 +382,10 @@ resulting trajectory.
 - JSON column read as string, not parsed.
 
 **Execution log.**
-- Status: `pending`
-- Date: —
-- Evidence: —
-- Notes: —
+- Status: `green`
+- Date: 2026-05-26
+- Evidence: red at import on `./db.js` at commit `589f82c` (Slice 3.1); green across all 5 sub-cases at commit `17ba11e` (Slice 3.2 — `db.ts` lands with prepared statements, JSON columns, `PRAGMA foreign_keys=ON`, bulk upsert in a transaction).
+- Notes: `events-append` exercises the seq tiebreaker by appending two events at the same `t_epoch` in non-chronological order; assertion verifies sort order on read. `cascade-delete` confirms `PRAGMA foreign_keys=ON` is in effect — without it the CASCADE clause is a no-op in SQLite.
 
 ---
 
@@ -411,10 +411,10 @@ resulting trajectory.
 - Stack traces returned in production-mode response bodies.
 
 **Execution log.**
-- Status: `pending`
-- Date: —
-- Evidence: —
-- Notes: —
+- Status: `green`
+- Date: 2026-05-26
+- Evidence: red at import on `../app.js` at commit `589f82c` (Slice 3.1); green across all 8 sub-cases (3 per-endpoint round-trips kept from Slice 0 + 1 full-sequence happy path + 4 zod rejections) at commit `17ba11e` (Slice 3.2 — `app.ts` extracted from `index.ts`, three routers mounted at `/api/runs`, zod schemas in `schemas.ts`). Also closes Slice 0 anchor 0.2.3.
+- Notes: The boundary contract `{ error: string, issues: ZodIssue[] }` is asserted by the `expectZod400` helper (same file, top); every 400 response goes through that helper. The N≥0 rejection is enforced by `stateCSchema.N: z.number().nonnegative()` in `server/src/schemas.ts` — defense in depth on top of the math-layer `rk4Step` clamp. The `?after=foo` rejection uses `z.coerce.number().refine(Number.isFinite)` to reject `NaN` (which `z.coerce.number()` accepts by default).
 
 ---
 
