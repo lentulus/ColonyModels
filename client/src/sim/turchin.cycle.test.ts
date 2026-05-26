@@ -8,14 +8,19 @@ import { replayTo } from "./replay";
  * secular cycle in the expected period band.
  *
  * Verifies the full integrator + replay pipeline against Turchin's
- * cited behaviour: with r ≈ 0.02 yr⁻¹ the model exhibits boom-and-bust
- * cycles on a ~200-300 year period (Historical Dynamics §7.2.1, Fig 7.1).
+ * cited behaviour: with r = 0.02 yr⁻¹, β = 0.25, c = 3, s₀ = 10,
+ * N₀ = 0.5, S₀ = 0 the model runs one boom-and-bust excursion of
+ * ~2-3 centuries (Historical Dynamics §7.2.1 prose p.123, Fig 7.1
+ * caption p.124). With §17 at Turchin verbatim the actual N-peak
+ * lands at t ≈ 227 yr; the [180, 280] yr window matches the bound
+ * derived in Phase1MathDerivations §3.5/§5.
  *
  * Loose tolerances on purpose — the goal is "secular cycle appears,"
  * not "matches Turchin's figure to three decimal places."
  *
- * Status at write time (Slice 0): expected to fail at *import* — the
- * replay module does not yet exist. Turns green at Slice 2.2.3.
+ * Status (Slice 2.1.0 amendment, 2026-05-26): expected to fail at
+ * *import* — the replay module does not yet exist. Turns green at
+ * Slice 2.2.3 when `replayTo` lands.
  */
 
 const SECS_PER_YEAR = 31_556_952;
@@ -37,7 +42,9 @@ type Run = {
 type Event = never;
 type Snapshot = { tEpoch: number; state: StateC };
 
-// §17 BLANK_RUN — kept in sync with Phase1Design.md §17.
+// §17 BLANK_RUN — kept in sync with Phase1Design.md §17 (Turchin Fig 7.1
+// / §7.2.1 verbatim: r = 0.02, β = 0.25, c = 3, s₀ = 10, N₀ = k₀/2 = 0.5,
+// S₀ = 0).
 const BLANK_RUN: Run = {
   id: "anchor",
   name: "turchin-cycle-anchor",
@@ -45,13 +52,13 @@ const BLANK_RUN: Run = {
   t0Epoch: 10_413_792_000, // 2300-01-01 UTC
   tickSeconds: 2_629_746, // 1 month
   peoplePerUnit: 1000,
-  initialState: { N: 0.2, S: 0.0 },
-  initialParams: { r: 0.02, beta: 0.25, c: 3, s0: 1 },
+  initialState: { N: 0.5, S: 0.0 },
+  initialParams: { r: 0.02, beta: 0.25, c: 3, s0: 10 },
   createdAt: 0,
 };
 
 describe("turchin cycle anchor — §17 defaults produce a secular cycle", () => {
-  it("first peak in [80, 220] yr; next trough at least 100 yr later; no blow-up", () => {
+  it("first peak in [180, 280] yr; next trough at least 100 yr later; no blow-up", () => {
     const horizonYears = 600;
     const targetEpoch = BLANK_RUN.t0Epoch + horizonYears * SECS_PER_YEAR;
     const snapshots: Snapshot[] = replayTo(BLANK_RUN, [] as Event[], targetEpoch);
@@ -86,9 +93,9 @@ describe("turchin cycle anchor — §17 defaults produce a secular cycle", () =>
     expect(firstPeak, "no local maximum of N found in 600-yr run").toBeDefined();
     expect(
       firstPeak!.tYears,
-      `first peak at ${firstPeak!.tYears.toFixed(1)} yr — outside [80, 220]`,
-    ).toBeGreaterThanOrEqual(80);
-    expect(firstPeak!.tYears).toBeLessThanOrEqual(220);
+      `first peak at ${firstPeak!.tYears.toFixed(1)} yr — outside [180, 280]`,
+    ).toBeGreaterThanOrEqual(180);
+    expect(firstPeak!.tYears).toBeLessThanOrEqual(280);
 
     const firstPeakIdx = extrema.indexOf(firstPeak!);
     const nextTrough = extrema

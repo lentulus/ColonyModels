@@ -1287,6 +1287,51 @@ code will be replaced when Slice 5's real `Controls.tsx` ships
 Goal: `paramsAt`, `replayTo`, branching. The Slice 0 **Turchin cycle anchor
 turns green** by end-of-slice.
 
+### 2.1.0 R-014 amendment — sync anchor to §17 verbatim, widen peak bound
+
+Carry-over from Slice 1.3.4b: with §17 finalized to Turchin verbatim
+(`s0=10, N0=0.5`), the Slice 0 anchor
+[client/src/sim/turchin.cycle.test.ts](../../client/src/sim/turchin.cycle.test.ts)
+would fail at Slice 2.2.3 when `replayTo` lands — its `BLANK_RUN` constant
+still uses pre-1.3.4b values (`s0=1, N=0.2`) and its peak-window assertion
+`[80, 220]` is 7 yr below the actual peak at t ≈ 227 yr. Filed under
+[feedback-checklist-authoritative](../../../.claude/projects/-home-lentulus-projects-ColonyModels/memory/feedback_checklist_authoritative.md)
+before 2.1.1 fires. Full derivation:
+[Phase1MathDerivations.md §5](Phase1MathDerivations.md) (F-1.3.4b-3).
+
+- [x] **2.1.0.a [AI]** Edit `client/src/sim/turchin.cycle.test.ts` `BLANK_RUN`
+      to match §17 verbatim: `initialState.N` 0.2 → 0.5; `initialParams.s0`
+      1 → 10. Leave other fields unchanged.
+      *Result:* BLANK_RUN updated to §17 verbatim (`N0=0.5, s0=10`); other fields unchanged.
+- [x] **2.1.0.b [AI]** Widen the first-peak assertion window in the same
+      file: `[80, 220]` yr → `[180, 280]` yr (matches the bound used in
+      `model.cycle.test.ts` and derived in
+      [Phase1MathDerivations.md §3.5/§5](Phase1MathDerivations.md)).
+      Update both the `it(...)` description string and the two
+      `expect(...).toBeGreaterThanOrEqual / toBeLessThanOrEqual` calls and
+      their assertion messages.
+      *Result:* `it(...)` description, both `expect` bounds (80→180, 220→280), and the assertion-failure message all updated to `[180, 280]`.
+- [x] **2.1.0.c [AI]** Refresh the in-file doc comments so they reference
+      the new bound and §17-verbatim params; keep the "expected red at
+      import until Slice 2.2.3" status note.
+      *Result:* Top doc comment now cites Turchin pp. 123-124 and the [180, 280] derivation; BLANK_RUN comment lists verbatim §17 params; status note updated to "Slice 2.1.0 amendment, 2026-05-26".
+- [x] **2.1.0.d [AI]** Run `npm test`, `npm run typecheck`, `npm run build`.
+      Confirm the anchor is **still red at import** (not at assertion —
+      `./replay` module still missing), and that typecheck + build remain
+      clean. The amendment must not flip the red mode.
+      *Result:* Client 28/28 passing; `turchin.cycle.test.ts` still red **at import** (`Cannot find module './replay'`). Typecheck and build clean across all 3 workspaces.
+- [x] **2.1.0.e [HUMAN]** Review amendment diff
+      (`turchin.cycle.test.ts`, this checklist, `Phase1RiskRegister.md`).
+      *Result:* Lentulus reviewed and approved (double-approval) 2026-05-26.
+- [x] **2.1.0.f [HUMAN]** Approve commit.
+      *Result:* Lentulus approved commit (double-approval) 2026-05-26.
+- [x] **2.1.0.g [AI]** Commit `docs+test:` covering the test edit, this
+      checklist amendment, and the risk register update. Report hash.
+      Also update R-014 row in
+      [Phase1RiskRegister.md](Phase1RiskRegister.md) from **Open** →
+      **Mitigated** (closes at 2.2.3 when the anchor goes green).
+      *Result:* See `docs+test: Slice 2.1.0 — R-014 amendment` in git log; R-014 flipped to Mitigated.
+
 ### 2.1 Test-first
 
 - [ ] **2.1.1 [AI]** Write `client/src/sim/replay.test.ts` covering:
