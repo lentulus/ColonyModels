@@ -88,6 +88,7 @@ If a DoD item cannot be satisfied this slice, document the waiver here
 | 1 | "Anchors still green" — partial | Slice 0's `turchin.cycle.test.ts` (0.2.2) and `runs.roundtrip.test.ts` (0.2.3) are red at import; they're not "previously-green-now-red", they're "still-red-from-Slice-0" awaiting the modules they import (`./replay` for Slice 2, `../app` for Slice 3). Slice 0's `logistic.analytic.test.ts` (0.2.1) IS green per spec. | 0.2.2: Slice 2.2.3; 0.2.3: Slice 3.2.4 |
 | ~~1~~ | ~~"Asserts properties green"~~ | Resolved 2026-05-25 at Slice 1.3.4e: 13 properties (P-M-1..7 + P-I-1..6) added inline in the existing `model.test.ts` and `integrator.test.ts` per [Phase1PBT.md](Phase1PBT.md) convention. All green at 100 runs/property. | ~~waived~~ resolved in Slice 1 |
 | ~~1~~ | ~~"Test execution logs populated"~~ | Resolved 2026-05-25 at Slice 1.3.4b.fix-6: 1.3.4b section added to [Phase1AutomatedTests.md](Phase1AutomatedTests.md). | ~~waived~~ resolved in Slice 1 |
+| 2 | "Anchors still green" — partial | Slice 0's `runs.roundtrip.test.ts` (0.2.3) is red at import (`Cannot find module '../app.js'`); it's not "previously-green-now-red", it's "still-red-from-Slice-0" awaiting the server `app.ts` module. Slice 0's `logistic.analytic.test.ts` (0.2.1) and `turchin.cycle.test.ts` (0.2.2) are both green. Same shape as Slice 1's partial waiver, now reduced to a single anchor. | 0.2.3: Slice 3.2.4 |
 
 A waiver requires explicit `[HUMAN]` approval (subject to the double-
 approval gate, like any other gated decision).
@@ -100,7 +101,7 @@ Each slice's green review records its DoD sign-off here:
 | ----- | ---- | -------------- | ------- | ------------- |
 | 0 | — | — | — | — |
 | 1 | 2026-05-25 | Yes (12/13 green, 1 explicitly waived — Asserts properties + Test execution logs resolved during 1.3.4b.fix-6 / 1.3.4e; typecheck/build resolved at 1.3.4d) | "Anchors still green" partial (Slice 0 anchors 0.2.2 + 0.2.3 still red at import, awaiting Slice 2 + Slice 3) | Lentulus |
-| 2 | — | — | — | — |
+| 2 | *(pending 2.3.4 sign-off)* | *(pending — draft scorecard at end of [Phase1Checklist.md](Phase1Checklist.md) 2.3.3a)* | *(pending)* | *(pending)* |
 | 3 | — | — | — | — |
 | 4 | — | — | — | — |
 | 5 | — | — | — | — |

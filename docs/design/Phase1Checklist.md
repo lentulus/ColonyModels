@@ -1438,11 +1438,29 @@ rest of the assertion chain; this is the missing audit. New risk row
       *Result:* Lentulus reviewed and approved (double-approval) 2026-05-26.
 - [x] **2.3.3.fix-1.f [AI]** Commit `fix:` and report hash.
       *Result:* See `fix: Slice 2.3.3.fix-1 — round N tooltip display to integers` in git log.
-- [ ] **2.3.3a [AI]** Tracking sweep: update
+- [x] **2.3.3a [AI]** Tracking sweep: update
       [Phase1RiskRegister.md](Phase1RiskRegister.md); draft Slice 2 entry
       in [Phase1Retros.md](Phase1Retros.md); fill in
       [Phase1DoD.md](Phase1DoD.md) Slice 2 row.
-      *Result:* —
+      *Result:* R-014 + R-016 moved from Open → Closed. Slice 2 retro entry filled in (date, surprises, what-worked, what-to-change, action items including the new "audit every assertion in `it()` blocks when model behavior changes" rule and "refresh Phase1AutomatedTests.md alongside test amendments" standing rule). [Phase1AutomatedTests.md](Phase1AutomatedTests.md) 0.2.2 + 2.1.1 Execution logs backfilled; 0.2.2's pre-2.1.0/2.2.0 setup and pass criteria refreshed to match the current test shape. [Phase1DoD.md](Phase1DoD.md) Slice 2 row holds for 2.3.4 sign-off (scorecard surfaced in chat — two open items: P-R-1..6 Asserts properties + "Anchors still green" partial waiver for 0.2.3 Slice 3 anchor).
+- [x] **2.3.3b [AI]** Add Asserts properties P-R-1..6 to `replay.test.ts`
+      per [Phase1PBT.md](Phase1PBT.md) "Properties — `replay.test.ts`".
+      Analog of Slice 1.3.4e (which added P-M-1..7 + P-I-1..6 inline).
+      Use `fc.double` (not `fc.float`) per [Phase1PBT.md](Phase1PBT.md)
+      conventions for fast-check 4.x. Bound generators to physically
+      sensible ranges. Properties live under a `describe("properties")`
+      block in the same file. Run at default 100 runs/property; verify
+      all green.
+      *Result:* Six properties added under `describe("replay — Asserts properties")` at the bottom of `replay.test.ts`. Generators use `fc.double`; property fixture has yearly `tickSeconds` and 20-yr max horizon (reduced from 100 yr after first run timed out — invariant tests, not fidelity tests). `withDeletedKeys` workaround for fast-check 4.x documented inline. 41/41 client tests passing in ~7 s; typecheck + build clean.
+- [x] **2.3.3b.e [HUMAN]** Review and approve commit.
+      *Result:* Lentulus reviewed and approved (double-approval) 2026-05-26.
+- [x] **2.3.3b.f [AI]** Commit and report hash.
+      *Result:* See `test: Slice 2.3.3b — Asserts properties P-R-1..6 for replay engine` in git log.
+- [x] **2.3.3b.g [AI]** Add the Slice 2 / 0.2.3 partial-waiver row to
+      [Phase1DoD.md](Phase1DoD.md) Waivers table (same shape as Slice 1's
+      partial waiver, but now only 0.2.3 — runs.roundtrip.test.ts red at
+      import until Slice 3.2.4). Bundled into 2.3.3b.f commit.
+      *Result:* Waiver row added after Slice 1's resolved-row; closes at Slice 3.2.4.
 - [ ] **2.3.4 [HUMAN]** **DoD sign-off** — confirm DoD all-green or
       explicitly waived; retro entry approved.
       *Result:* —

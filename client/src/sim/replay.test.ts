@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-// `paramsAt` and `replayTo` don't exist yet — these imports will fail until
-// Slice 2.2.1 lands. That's the expected red state at Slice 2 step 2.1.1.
+import fc from "fast-check";
 import { paramsAt, replayTo } from "./replay";
 import type { Event, Run } from "@colonymodels/shared";
 
@@ -203,5 +202,196 @@ describe("replayTo — determinism, branching, mid-tick", () => {
     // proves `replayTo` did not defer the event to the boundary.
     expect(midTick[2].state.N).not.toBe(boundary[2].state.N);
     expect(midTick[2].state.N).toBeLessThan(boundary[2].state.N);
+  });
+});
+
+/**
+ * Slice 2.3.3b — Asserts properties P-R-1..P-R-6 for the replay engine.
+ *
+ * Properties per [Phase1PBT.md](../../../docs/design/Phase1PBT.md)
+ * §"Properties — `client/src/sim/replay.test.ts`". Analog of Slice 1.3.4e's
+ * P-M / P-I property suites.
+ *
+ * Convention (Phase1PBT.md §"Conventions"): properties live in the same
+ * file as example-based tests under a separate `describe("properties")`
+ * block.
+ *
+ * Generator notes:
+ *   - `fc.double` (not `fc.float`) per the fast-check 4.x compatibility
+ *     note carried from Slice 1.3.4e: `fc.float` is restricted to 32-bit
+ *     IEEE-754 in 4.x; `fc.double` covers the full 64-bit range.
+ *   - Parameter and state ranges bounded to physically sensible regions
+ *     (no `Number.MAX_VALUE` cliff-chases) per Phase1PBT.md §"Conventions".
+ *   - Property fixture uses **yearly** `tickSeconds` for replay speed
+ *     (≤100 snapshots per replay), distinct from the example-test fixture
+ *     which uses monthly `tickSeconds` for temporal fidelity. Both go
+ *     through the same `replayTo` code path.
+ */
+
+const PROP_TICK_SECONDS = SECS_PER_YEAR; // yearly tick for fast property runs
+const PROP_RUN: Run = {
+  id: "prop-run",
+  name: "replay-property-run",
+  modelKind: "C-basic-demfisc",
+  t0Epoch: 10_413_792_000,
+  tickSeconds: PROP_TICK_SECONDS,
+  peoplePerUnit: 1000,
+  initialState: { N: 0.5, S: 0 },
+  initialParams: { r: 0.02, beta: 0.25, c: 3, s0: 10 },
+  createdAt: 0,
+};
+
+// Horizon and array sizes deliberately small for property-test speed.
+// Each replayTo with a 20-yr horizon and yearly ticks runs ~20 ticks ×
+// ~365 daily sub-steps = ~7300 RK4 sub-steps. At 100 runs/property and
+// 6 properties (some doing 2 replayTo calls each), total work is well
+// under the 5-second vitest timeout. Temporal fidelity (long cycles,
+// settling behaviour) is the example tests' job, not the properties'.
+const MAX_HORIZON_YEARS = 20;
+const MAX_EVENTS_PER_ARRAY = 5;
+
+// Bounded payload generators (physically sensible).
+const arbParamValue = fc.double({ min: 0.001, max: 5, noNaN: true });
+const arbPatchN = fc.double({ min: 0, max: 5, noNaN: true });
+const arbParamKey = fc.constantFrom("r", "beta", "c", "s0" as const);
+
+// Event tEpoch ∈ [t0, t0 + 40 yr] gives a realistic mix of before /
+// at / after a target up to 20 yr.
+const arbEventTEpoch = fc
+  .integer({ min: 0, max: 40 * SECS_PER_YEAR })
+  .map((offsetSec) => PROP_RUN.t0Epoch + offsetSec);
+
+const arbParamSetEvent = fc.record({
+  kind: fc.constant("param-set" as const),
+  tEpoch: arbEventTEpoch,
+  param: arbParamKey,
+  value: arbParamValue,
+});
+// State-poke patches always carry N here. `withDeletedKeys` (which would
+// also exercise the empty-patch / S-only-patch cases) was removed in
+// fast-check 4.x; keeping patches non-empty avoids the API gap and is
+// the case the replay engine cares about. Empty-patch coverage can be
+// added with a `fc.oneof(..., fc.constant({}))` if it ever matters.
+const arbStatePokeEvent = fc.record({
+  kind: fc.constant("state-poke" as const),
+  tEpoch: arbEventTEpoch,
+  patch: fc.record({ N: arbPatchN }),
+});
+const arbEvent: fc.Arbitrary<Event> = fc.oneof(
+  arbParamSetEvent,
+  arbStatePokeEvent,
+);
+
+// §6.1 invariant: events stored sorted by tEpoch.
+const arbEvents = fc
+  .array(arbEvent, { maxLength: MAX_EVENTS_PER_ARRAY })
+  .map((es): Event[] => [...es].sort((a, b) => a.tEpoch - b.tEpoch));
+
+const arbTargetYears = fc.integer({ min: 1, max: MAX_HORIZON_YEARS });
+
+describe("replay — Asserts properties", () => {
+  it("P-R-1: replayTo(run, events, t) is deterministic — two calls return deep-equal output", () => {
+    fc.assert(
+      fc.property(arbEvents, arbTargetYears, (events, yrs) => {
+        const target = PROP_RUN.t0Epoch + yrs * SECS_PER_YEAR;
+        const a = replayTo(PROP_RUN, events, target);
+        const b = replayTo(PROP_RUN, events, target);
+        expect(a).toEqual(b);
+      }),
+    );
+  });
+
+  it("P-R-2: replayTo(run, [], t) baseline structure — first snapshot at t0, tick-spaced, last ≥ t", () => {
+    // "Empty event list = baseline trajectory" (Phase1PBT.md). The property
+    // pins down the snapshot grid produced by the no-events case so any
+    // future regression in tick-boundary handling fails here.
+    fc.assert(
+      fc.property(arbTargetYears, (yrs) => {
+        const target = PROP_RUN.t0Epoch + yrs * SECS_PER_YEAR;
+        const snaps = replayTo(PROP_RUN, [], target);
+        expect(snaps.length).toBeGreaterThan(0);
+        expect(snaps[0].tEpoch).toBe(PROP_RUN.t0Epoch);
+        expect(snaps[snaps.length - 1].tEpoch).toBeGreaterThanOrEqual(target);
+        for (let i = 1; i < snaps.length; i++) {
+          expect(snaps[i].tEpoch - snaps[i - 1].tEpoch).toBe(PROP_TICK_SECONDS);
+        }
+      }),
+    );
+  });
+
+  it("P-R-3: paramsAt returns a value from {initial} ∪ {events' values up to cursor} — no invented values", () => {
+    fc.assert(
+      fc.property(arbEvents, arbTargetYears, (events, yrs) => {
+        const cursor = PROP_RUN.t0Epoch + yrs * SECS_PER_YEAR;
+        const result = paramsAt(PROP_RUN, events, cursor);
+        for (const key of ["r", "beta", "c", "s0"] as const) {
+          const allowed = new Set<number>([PROP_RUN.initialParams[key]]);
+          for (const e of events) {
+            if (e.kind === "param-set" && e.param === key && e.tEpoch <= cursor) {
+              allowed.add(e.value);
+            }
+          }
+          expect(allowed.has(result[key])).toBe(true);
+        }
+      }),
+    );
+  });
+
+  it("P-R-4: replayTo at t2 > t1 — the t2 replay's snapshot at t1 matches the t1 replay's last snapshot", () => {
+    fc.assert(
+      fc.property(
+        arbEvents,
+        fc.integer({ min: 1, max: 10 }),
+        fc.integer({ min: 1, max: 10 }),
+        (events, yrs1, extraYrs) => {
+          const target1 = PROP_RUN.t0Epoch + yrs1 * SECS_PER_YEAR;
+          const target2 = PROP_RUN.t0Epoch + (yrs1 + extraYrs) * SECS_PER_YEAR;
+          const a = replayTo(PROP_RUN, events, target1);
+          const b = replayTo(PROP_RUN, events, target2);
+          const lastA = a[a.length - 1];
+          const matchInB = b.find((s) => s.tEpoch === lastA.tEpoch);
+          expect(matchInB).toEqual(lastA);
+        },
+      ),
+    );
+  });
+
+  it("P-R-5: adding a param-set event after t does not change replayTo(run, events, t) — causality", () => {
+    fc.assert(
+      fc.property(
+        arbEvents,
+        arbTargetYears,
+        arbParamValue,
+        arbParamKey,
+        (events, yrs, value, param) => {
+          const target = PROP_RUN.t0Epoch + yrs * SECS_PER_YEAR;
+          const futureEvent: Event = {
+            kind: "param-set",
+            tEpoch: target + SECS_PER_YEAR,
+            param,
+            value,
+          };
+          const withFuture = [...events, futureEvent].sort(
+            (a, b) => a.tEpoch - b.tEpoch,
+          );
+          expect(replayTo(PROP_RUN, withFuture, target)).toEqual(
+            replayTo(PROP_RUN, events, target),
+          );
+        },
+      ),
+    );
+  });
+
+  it("P-R-6: every snapshot has N ≥ 0 and S ≥ 0 — clamps survive the replay-driver layer", () => {
+    fc.assert(
+      fc.property(arbEvents, arbTargetYears, (events, yrs) => {
+        const target = PROP_RUN.t0Epoch + yrs * SECS_PER_YEAR;
+        const snaps = replayTo(PROP_RUN, events, target);
+        for (const s of snaps) {
+          expect(s.state.N).toBeGreaterThanOrEqual(0);
+          expect(s.state.S).toBeGreaterThanOrEqual(0);
+        }
+      }),
+    );
   });
 });
