@@ -1597,19 +1597,49 @@ behavior; verification is `npm run typecheck` + `npm run build` clean.
       per [[feedback-gui-only-review]]).
       *Result:* Acked 2026-05-26 via "go ahead" — single-yes per
       [[feedback-gui-only-review]] for technical config-only change.
-- [ ] **4.0.4 [AI]** Commit `chore:` prefix (config-only, not a
+- [x] **4.0.4 [AI]** Commit `chore:` prefix (config-only, not a
       red/green pair). Report hash.
-      *Result:* —
+      *Result:* Committed 2026-05-26 as
+      `953cff8 chore: Slice 4.0 — TS composite project references (resolves R-018)`
+      (8 files changed, 63 insertions, 6 deletions). `git status`
+      clean after commit. Branch `main` now 1 commit ahead of
+      `origin/main`; no push performed.
 
 ### 4.1 Test-first
 
-- [ ] **4.1.1 [AI]** Write `client/src/store/runStore.test.ts` covering
+- [x] **4.1.1 [AI]** Write `client/src/store/runStore.test.ts` covering
       `createRun`, `appendEvent`, `rewindTo`, `advance`, `flushToServer`
       with a mocked fetch layer. Assert state transitions, not just method
       calls.
-      *Result:* —
-- [ ] **4.1.2 [AI]** Run `npm test`, confirm Slice 4 tests fail.
-      *Result:* —
+      *Result:* Written 2026-05-26 — `client/src/store/runStore.test.ts`
+      (~330 lines, 10 `it()` blocks across 7 sub-cases per
+      [Phase1AutomatedTests.md §4.1.1](Phase1AutomatedTests.md)).
+      Fetch is mocked via `globalThis.fetch = vi.fn(defaultFetchMock)`;
+      every call recorded with `{url, method, body, query}` for per-test
+      inspection (URL+method+body assertions per §4.1.1 pass criteria,
+      not just call counts). Sub-cases: create (POST /api/runs, single
+      t0 snap, isDirty=true), append-event (POST /events with body =
+      Event; subsequent advance with r=0 leaves N=0.5 ±1e-12),
+      advance (snap added + cursor += tickSeconds + isDirty; local-only,
+      no fetch), flush (PUT bare-array snapshots + isDirty=false;
+      no-op when not dirty), rewind (cursor set, snapshots ≤ target,
+      events untouched, re-derive on next advance), branch (DELETE
+      snapshots + events `?after=branchPoint`; new event POSTed;
+      local snaps past cursor dropped), api-error (PUT 500 → state
+      unchanged, isDirty stays true, promise rejects; same for fetch
+      network reject). Imports from `./runStore` (does not exist yet).
+- [x] **4.1.2 [AI]** Run `npm test`, confirm Slice 4 tests fail.
+      *Result:* Verified 2026-05-26 via `npx vitest run` in the client
+      workspace. **Client: 1 failed | 6 passed (7) | Tests: 41 passed.**
+      `runStore.test.ts` fails at module resolution:
+      `Error: Cannot find module './runStore' imported from
+      .../client/src/store/runStore.test.ts` at line 11
+      (`import { useRunStore } from "./runStore"`). Expected red state
+      per §11.2 rule 2 (missing-module error, not assertion).
+      6 previously-green client files (logistic, model, integrator,
+      turchin, store, App-related, plus Slice 0 anchors — total 41
+      sub-tests) still pass — new red is isolated. Server (13/13) and
+      shared (no-test skip) unchanged.
 - [ ] **4.1.3 [AI]** Post red-review summary.
       *Result:* —
 - [ ] **4.1.4 [HUMAN]** Red review.
